@@ -5,6 +5,7 @@ from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, Gro
 import uuid
 from io_layer.local_fs import LocalFileSystemIO
 from bridge.orchestrator import Bridge
+from config.app_config import load_config, save_config, get_default_data_dir
 
 # Page configuration
 st.set_page_config(
@@ -92,7 +93,9 @@ def agraph_fixed(nodes, edges, config, key=None):
 if 'graph_reset_key' not in st.session_state:
     st.session_state.graph_reset_key = 0
 if 'repo' not in st.session_state:
-    st.session_state.repo = LocalFileSystemIO()
+    _app_cfg = load_config()
+    _data_dir = _app_cfg.get("data_dir", get_default_data_dir())
+    st.session_state.repo = LocalFileSystemIO(_data_dir)
 
 @st.dialog("Create New Group")
 def create_group_dialog():
@@ -705,6 +708,49 @@ with tab5:
             st.session_state.bridge.save_settings()
             st.success("Settings saved!")
             st.rerun()
+
+    with st.expander("📂 Data Storage"):
+        current_data_dir = st.session_state.repo.base_dir
+        default_data_dir = get_default_data_dir()
+
+        st.caption(f"Current data directory:")
+        st.code(current_data_dir, language=None)
+        st.info(
+            "⚠️ Changing the data directory will **not** migrate existing data. "
+            "The app will simply look for groups in the new location."
+        )
+
+        new_path = st.text_input(
+            "Set new data directory",
+            value=current_data_dir,
+            placeholder=default_data_dir,
+            key="settings_data_dir_input"
+        )
+
+        col_apply, col_reset = st.columns(2)
+        with col_apply:
+            if st.button("✅ Apply", use_container_width=True, type="primary",
+                         disabled=(new_path.strip() == current_data_dir)):
+                _cfg = load_config()
+                _cfg["data_dir"] = new_path.strip()
+                save_config(_cfg)
+                # Re-initialize the repo and drop the bridge so the user re-selects a group
+                st.session_state.repo = LocalFileSystemIO(new_path.strip())
+                if 'bridge' in st.session_state:
+                    del st.session_state.bridge
+                st.toast(f"Data directory updated. Please select a group.", icon="📂")
+                st.rerun()
+        with col_reset:
+            if st.button("↩️ Reset to Default", use_container_width=True,
+                         disabled=(current_data_dir == default_data_dir)):
+                _cfg = load_config()
+                _cfg["data_dir"] = default_data_dir
+                save_config(_cfg)
+                st.session_state.repo = LocalFileSystemIO(default_data_dir)
+                if 'bridge' in st.session_state:
+                    del st.session_state.bridge
+                st.toast(f"Data directory reset to default.", icon="↩️")
+                st.rerun()
 
     with st.expander("🚨 Danger Zone"):
         st.write("Permanently delete this group and all its data. This cannot be undone.")
