@@ -1,1 +1,5 @@
 pytest>=7.0.0
+streamlit>=1.30.0
+pandas>=2.0.0
+uuid
+streamlit-agraph>=0.0.45
