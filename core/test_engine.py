@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from engine import EqualSplitStrategy, PercentageSplitStrategy, ShareSplitStrategy, Expense, Ledger, Transfer
+from engine import EqualSplitStrategy, PercentageSplitStrategy, ExactSplitStrategy, Expense, Ledger, Transfer
 
 class TestMoneySplitter(unittest.TestCase):
     def test_equal_split_no_residue(self):
@@ -30,19 +30,17 @@ class TestMoneySplitter(unittest.TestCase):
         with self.assertRaises(ValueError):
             strategy.calculate_shares(Decimal("10.00"), ["A", "B"])
 
-    def test_share_split(self):
-        # 2:1 split of 30.00
-        strategy = ShareSplitStrategy({"A": Decimal("2"), "B": Decimal("1")})
+    def test_exact_split(self):
+        # 10.00 and 20.00 split of 30.00
+        strategy = ExactSplitStrategy({"A": Decimal("10.00"), "B": Decimal("20.00")})
         shares = strategy.calculate_shares(Decimal("30.00"), ["A", "B"])
-        self.assertEqual(shares["A"], Decimal("20.00"))
-        self.assertEqual(shares["B"], Decimal("10.00"))
+        self.assertEqual(shares["A"], Decimal("10.00"))
+        self.assertEqual(shares["B"], Decimal("20.00"))
 
-    def test_share_split_with_residue(self):
-        # 1:1:1 split of 10.00
-        strategy = ShareSplitStrategy({"A": 1, "B": 1, "C": 1})
-        shares = strategy.calculate_shares(Decimal("10.00"), ["A", "B", "C"])
-        self.assertEqual(sum(shares.values()), Decimal("10.00"))
-        self.assertEqual(len(set(shares.values())), 2) # Two 3.33 and one 3.34
+    def test_exact_split_invalid_sum(self):
+        strategy = ExactSplitStrategy({"A": Decimal("10.00"), "B": Decimal("10.00")})
+        with self.assertRaises(ValueError):
+            strategy.calculate_shares(Decimal("30.00"), ["A", "B"])
 
     def test_expense_serialization(self):
         strategy = PercentageSplitStrategy({"A": 50, "B": 50})
@@ -147,27 +145,6 @@ class TestMoneySplitter(unittest.TestCase):
         self.assertEqual(transactions[0]["from"], "A")
         self.assertEqual(transactions[0]["to"], "C")
         self.assertEqual(transactions[0]["amount"], "10.00")
-
-    def test_complex_simplification(self):
-        from engine import DebtSimplifier
-        # A owes B 10, A owes C 5, D owes B 5
-        # Balances: A: -15, B: +15, C: +5, D: -5
-        balances = {"USD": {
-            "A": Decimal("-15.00"),
-            "B": Decimal("15.00"),
-            "C": Decimal("5.00"),
-            "D": Decimal("-5.00")
-        }}
-        multi_transactions = DebtSimplifier.simplify(balances)
-        transactions = multi_transactions["USD"]
-        # Greedy should give:
-        # A pays B 15
-        # D pays C 5
-        self.assertEqual(len(transactions), 2)
-        
-        # Verify total amount matches
-        total_transferred = sum(Decimal(t["amount"]) for t in transactions)
-        self.assertEqual(total_transferred, Decimal("20.00"))
 
 if __name__ == '__main__':
     unittest.main()

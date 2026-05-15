@@ -84,36 +84,22 @@ class PercentageSplitStrategy(SplitStrategy):
             "percentages": {k: str(v) for k, v in self.percentages.items()}
         }
 
-class ShareSplitStrategy(SplitStrategy):
-    def __init__(self, shares: Dict[str, Decimal]):
-        self.shares = {k: Decimal(str(v)) for k, v in shares.items()}
+class ExactSplitStrategy(SplitStrategy):
+    def __init__(self, amounts: Dict[str, Decimal]):
+        self.amounts = {k: Decimal(str(v)) for k, v in amounts.items()}
 
     def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
-        if not participants:
-            return {}
-            
-        total_shares = sum(self.shares.values())
-        if total_shares == 0:
-            return {p: Decimal('0') for p in participants}
-            
-        res_shares = {}
-        for p in participants:
-            share_weight = self.shares.get(p, Decimal('0'))
-            res_shares[p] = (total_amount * share_weight / total_shares).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            
-        residue = total_amount - sum(res_shares.values())
-        if residue != 0:
-            pennies = int(residue * 100)
-            step = 1 if pennies > 0 else -1
-            for i in range(0, pennies, step):
-                p = participants[abs(i) % len(participants)]
-                res_shares[p] += Decimal('0.01') * step
-        return res_shares
+        if sum(self.amounts.values()) != total_amount:
+            raise ValueError(f"Sum of individual amounts ({sum(self.amounts.values())}) must equal total amount ({total_amount})")
+        
+        # Ensure all participants have an entry, even if 0
+        shares = {p: self.amounts.get(p, Decimal('0')) for p in participants}
+        return shares
 
     def to_dict(self) -> Dict:
         return {
-            "type": "share",
-            "shares": {k: str(v) for k, v in self.shares.items()}
+            "type": "exact",
+            "amounts": {k: str(v) for k, v in self.amounts.items()}
         }
 
 from datetime import datetime
