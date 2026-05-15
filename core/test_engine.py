@@ -62,30 +62,68 @@ class TestMoneySplitter(unittest.TestCase):
 
     def test_ledger_balances(self):
         ledger = Ledger()
-        # A pays 10 for A, B, C
+        # A pays 10 for A, B, C (USD default)
         ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza"))
         
-        balances = ledger.get_net_balances()
+        multi_balances = ledger.get_net_balances()
+        self.assertIn("USD", multi_balances)
+        balances = multi_balances["USD"]
+        
         # A paid 10, owes 3.33 or 3.34. Net should be ~6.66
         # Sum of balances must be 0
         self.assertEqual(sum(balances.values()), Decimal('0'))
         
-        # B owes A 3.33
-        # C owes A 3.33 or 3.34
         self.assertTrue(balances["A"] > 0)
         self.assertTrue(balances["B"] < 0)
         self.assertTrue(balances["C"] < 0)
+
+    def test_multi_currency_ledger(self):
+        ledger = Ledger()
+        # A pays 10 USD for A, B, C
+        ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza", currency="USD"))
+        # B pays 15 EUR for B, C
+        ledger.add_expense(Expense("2", "B", Decimal("15.00"), ["B", "C"], "Drinks", currency="EUR"))
+        
+        multi_balances = ledger.get_net_balances()
+        self.assertIn("USD", multi_balances)
+        self.assertIn("EUR", multi_balances)
+        
+        usd = multi_balances["USD"]
+        eur = multi_balances["EUR"]
+        
+        self.assertEqual(sum(usd.values()), Decimal("0"))
+        self.assertEqual(sum(eur.values()), Decimal("0"))
+        
+        # In EUR: B paid 15, B owes 7.50, C owes 7.50
+        self.assertEqual(eur["B"], Decimal("7.50"))
+        self.assertEqual(eur["C"], Decimal("-7.50"))
+
+    def test_unified_balances(self):
+        ledger = Ledger()
+        ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", currency="USD"))
+        ledger.add_expense(Expense("2", "B", Decimal("10.00"), ["A", "B"], "Dinner", currency="EUR"))
+        
+        # Rates relative to USD: 1 EUR = 1.1 USD
+        rates = {"EUR": Decimal("1.1")}
+        unified = ledger.get_unified_balances("USD", rates)
+        
+        # A's USD balance: +5.00
+        # A's EUR balance: -5.00 -> -5.50 USD
+        # A's Unified: -0.50 USD
+        self.assertEqual(unified["A"], Decimal("-0.50"))
+        self.assertEqual(unified["B"], Decimal("0.50"))
 
     def test_debt_simplification(self):
         from engine import DebtSimplifier
         # A owes B 10, B owes C 10
         # Result should be: A owes C 10
-        balances = {
+        balances = {"USD": {
             "A": Decimal("-10.00"),
             "B": Decimal("0.00"),
             "C": Decimal("10.00")
-        }
-        transactions = DebtSimplifier.simplify(balances)
+        }}
+        multi_transactions = DebtSimplifier.simplify(balances)
+        transactions = multi_transactions["USD"]
         self.assertEqual(len(transactions), 1)
         self.assertEqual(transactions[0]["from"], "A")
         self.assertEqual(transactions[0]["to"], "C")
@@ -95,13 +133,14 @@ class TestMoneySplitter(unittest.TestCase):
         from engine import DebtSimplifier
         # A owes B 10, A owes C 5, D owes B 5
         # Balances: A: -15, B: +15, C: +5, D: -5
-        balances = {
+        balances = {"USD": {
             "A": Decimal("-15.00"),
             "B": Decimal("15.00"),
             "C": Decimal("5.00"),
             "D": Decimal("-5.00")
-        }
-        transactions = DebtSimplifier.simplify(balances)
+        }}
+        multi_transactions = DebtSimplifier.simplify(balances)
+        transactions = multi_transactions["USD"]
         # Greedy should give:
         # A pays B 15
         # D pays C 5
