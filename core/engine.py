@@ -293,3 +293,22 @@ class Ledger:
                 unified[user] = unified.get(user, Decimal('0')) + converted_balance
                 
         return unified
+
+class CurrencyConverter:
+    """
+    Handles pure currency exchange rate calculations.
+    """
+    @staticmethod
+    def get_exchange_rate(rates_dict: Dict[str, float], from_curr: str, to_curr: str) -> Decimal:
+        if from_curr == to_curr:
+            return Decimal('1.0')
+        if not rates_dict:
+            return Decimal('1.0')
+            
+        rate_from = Decimal(str(rates_dict.get(from_curr, 1.0)))
+        rate_to = Decimal(str(rates_dict.get(to_curr, 1.0)))
+        
+        if rate_from == Decimal('0'):
+            return Decimal('1.0')
+            
+        return rate_to / rate_from

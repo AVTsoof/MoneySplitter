@@ -31,3 +31,23 @@ class TransactionRepository(ABC):
             event_csv_row: The formatted CSV string representing the event.
         """
         pass
+
+    @abstractmethod
+    def save_exchange_rates(self, rates: dict) -> None:
+        """
+        Saves the current exchange rates to storage.
+        
+        Args:
+            rates: Dictionary containing exchange rate data and metadata.
+        """
+        pass
+
+    @abstractmethod
+    def get_exchange_rates(self) -> dict:
+        """
+        Retrieves the current exchange rates from storage.
+        
+        Returns:
+            Dictionary containing exchange rate data and metadata, or empty dict if not found.
+        """
+        pass

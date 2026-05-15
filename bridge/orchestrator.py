@@ -1,4 +1,8 @@
 from typing import List, Dict
+import urllib.request
+import json
+from datetime import datetime, timezone
+
 from core.engine import Ledger, Transaction, GroupSettings
 from io_layer.repository import TransactionRepository
 from io_layer.csv_adapter import CSVAdapter
@@ -13,7 +17,46 @@ class Bridge:
         self.group_id = group_id
         self.settings = settings or GroupSettings(default_currency='USD', active_currencies={'USD', 'EUR', 'ILS'})
         self.ledger = Ledger(self.settings)
+        self.update_exchange_rates(force=False)
         self.refresh()
+
+    def update_exchange_rates(self, force: bool = False, timeout: float = 5.0) -> bool:
+        """
+        Fetches current exchange rates from Frankfurter API and saves them locally.
+        If force is False, only fetches if the rates file doesn't exist or is older than 24 hours.
+        Returns True if successful, False if failed/timed out.
+        """
+        current_rates = self.get_exchange_rates()
+        last_updated = current_rates.get("timestamp", 0)
+        now = datetime.now(timezone.utc).timestamp()
+        
+        # 86400 seconds = 24 hours
+        if not force and current_rates and (now - last_updated < 86400):
+            return True
+
+        try:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+            req = urllib.request.Request("https://api.frankfurter.app/latest?base=USD", headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode())
+                    rates = data.get("rates", {})
+                    # Frankfurter returns rates base USD, but doesn't include USD: 1.0 itself.
+                    rates["USD"] = 1.0
+                    
+                    rates_data = {
+                        "timestamp": now,
+                        "rates": rates
+                    }
+                    self.repository.save_exchange_rates(rates_data)
+                    return True
+                return False
+        except Exception as e:
+            print(f"Error fetching exchange rates: {e}")
+            return False
+
+    def get_exchange_rates(self) -> dict:
+        return self.repository.get_exchange_rates()
 
     def refresh(self):
         """Fetches all events from the repository, sorts them, and reconstructs the Ledger."""
