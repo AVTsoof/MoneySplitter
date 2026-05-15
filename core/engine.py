@@ -3,24 +3,29 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import List, Dict, Set, Optional
 
 class GroupSettings:
-    def __init__(self, default_currency: str = 'USD', active_currencies: Set[str] = None, members: List[str] = None):
+    def __init__(self, default_currency: str = 'USD', active_currencies: Set[str] = None, members: List[str] = None, name: str = None):
         self.default_currency = default_currency
         self.active_currencies = active_currencies or {default_currency}
         self.members = members or []
+        self.name = name
 
     def to_dict(self) -> Dict:
-        return {
+        d = {
             "default_currency": self.default_currency,
             "active_currencies": list(self.active_currencies),
             "members": self.members
         }
+        if self.name is not None:
+            d["name"] = self.name
+        return d
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'GroupSettings':
         return cls(
             default_currency=data.get('default_currency', 'USD'),
             active_currencies=set(data.get('active_currencies', ['USD'])),
-            members=data.get('members', [])
+            members=data.get('members', []),
+            name=data.get('name', None)
         )
 
 class UserPreferences:

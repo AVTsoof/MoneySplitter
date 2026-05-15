@@ -1,9 +1,9 @@
 {
-    "default_currency": "USD",
+    "name": "Example Italy Trip",
+    "default_currency": "EUR",
     "active_currencies": [
-        "USD",
         "EUR",
-        "ILS"
+        "USD"
     ],
     "members": [
         "Alice",

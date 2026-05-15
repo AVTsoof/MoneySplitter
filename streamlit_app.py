@@ -119,12 +119,20 @@ if 'bridge' not in st.session_state or getattr(st.session_state.bridge, 'group_i
     
     available_groups = st.session_state.repo.list_groups()
     
+    # Build display labels: prefer the "name" field from settings, fall back to folder ID
+    group_labels = {}
+    for gid in available_groups:
+        s = st.session_state.repo.get_group_settings(gid)
+        group_labels[gid] = s.get("name", gid) if s else gid
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.subheader("Open Group")
         if available_groups:
-            selected_group = st.selectbox("Select existing group", available_groups)
+            label_to_id = {v: k for k, v in group_labels.items()}
+            selected_label = st.selectbox("Select existing group", list(group_labels.values()))
+            selected_group = label_to_id[selected_label]
             if st.button("Open", type="primary"):
                 temp_settings = st.session_state.repo.get_group_settings(selected_group)
                 members = temp_settings.get("members", [])
@@ -327,16 +335,17 @@ def confirm_save_dialog(idx, updated_tx):
 @st.dialog("🗑️ Delete Group")
 def delete_group_dialog():
     group_id = st.session_state.bridge.group_id
-    st.error(f"You are about to **permanently delete** the group **\"{group_id}\"** and all its data.")
+    display_name = getattr(st.session_state.bridge.settings, 'name', None) or group_id
+    st.error(f"You are about to **permanently delete** the group **\"{display_name}\"** and all its data.")
     st.warning("⚠️ This action **cannot be undone**. All transactions and settings will be lost forever.")
     st.write("To confirm, type the group name below:")
-    confirm_input = st.text_input("Group name", placeholder=group_id, key="delete_group_confirm_input")
-    is_confirmed = confirm_input.strip() == group_id
+    confirm_input = st.text_input("Group name", placeholder=display_name, key="delete_group_confirm_input")
+    is_confirmed = confirm_input.strip() == display_name
     if st.button("🗑️ Permanently Delete", type="primary", use_container_width=True, disabled=not is_confirmed):
         st.session_state.repo.delete_group(group_id)
         st.session_state.bridge.group_id = None  # Force back to group selection
         del st.session_state.bridge
-        st.toast(f"Group \"{group_id}\" deleted.", icon="🗑️")
+        st.toast(f"Group \"{display_name}\" deleted.", icon="🗑️")
         st.rerun()
     if not is_confirmed and confirm_input:
         st.caption("⚠️ The name does not match. Please type it exactly as shown.")
@@ -490,7 +499,8 @@ with st.sidebar:
 
 # --- UI Header ---
 st.title("💸 MoneySplitter")
-st.caption("Decentralized & Private Debt Splitting")
+_group_display_name = getattr(st.session_state.bridge.settings, 'name', None) or st.session_state.bridge.group_id
+st.caption(f"📁 {_group_display_name} · Decentralized & Private Debt Splitting")
 
 # --- Tabs ---
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📜 Transactions", "📊 Details", "🗺️ Map", "💱 Rates", "⚙️ Settings"])
