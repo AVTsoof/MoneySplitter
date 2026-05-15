@@ -282,9 +282,10 @@ Instead of a complicated form with 20 options, the user is guided through three 
 
 ---
 
-## Phase 10: The Visual Debt Map (Graph View)
+### [DONE] Phase 10: The Visual Debt Map (Graph View)
 
 This phase introduces a spatial representation of the group's finances, making it easier to grasp the "flow" of money at a glance.
+
 
 ### 1. Visual Components
 
