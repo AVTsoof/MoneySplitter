@@ -66,7 +66,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 * **Unequal Splits:** Support splitting by percentages, exact amounts, or "shares". [DONE: ExactSplitStrategy implemented]
 * **Multi-Currency Support:**
 * Each group maintains a ledger per currency.
-* To provide a "Total Balance," the engine must fetch real-time exchange rates.
+* To provide a "Total Balance," the engine must fetch real-time exchange rates. [DONE: dynamic Frankfurter API integration]
 * **Forex Risk Calculation:** When settling a USD debt in EUR, the system must account for the rate at the time of settlement vs. time of entry.
 
 
