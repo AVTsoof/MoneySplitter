@@ -167,19 +167,21 @@ To enable login and file access, you will utilize **Google Identity Services (GI
 
 ### Phase 8: Zero-Cost Hosting Strategy
 
-Since this app is non-commercial and handles no payments, you can host it entirely for free using **Static Site Hosting**.
+Since this app is non-commercial and handles no payments, you can host it entirely for free using Python-specific hosting or generic cloud platforms.
 
 | Provider | Why it fits | Limitations |
 | --- | --- | --- |
-| **Vercel** | Industry standard for modern web apps; extremely fast deployment from GitHub. | 100GB bandwidth/mo (plenty for CSVs). |
-| **Cloudflare Pages** | No limit on bandwidth or seat count; built-in DDoS protection. | Slightly more technical setup for "Functions." |
-| **GitHub Pages** | Dead simple; fits perfectly if your code is already in a repository. | No server-side logic (not needed for this architecture). |
+| **Streamlit Cloud** | Native support for Streamlit apps; direct integration with GitHub. | Limited resources for high-traffic apps (not an issue here). |
+| **Hugging Face Spaces** | Excellent for Python/Streamlit hosting with built-in versioning. | Public by default (requires configuration for privacy). |
+| **Railway / Render** | Great for small Python services with persistent storage options. | May have small monthly costs for "Pro" features. |
 
-**Recommendation:** Use **Vercel**. It provides an automated SSL certificate and handles the "Single Page Application" routing (making the URL look like `[app.com/group/123](https://app.com/group/123)`) out of the box.
+**Recommendation:** Use **Streamlit Cloud**. It provides a seamless deployment experience from GitHub and handles the Python environment and SSL automatically.
 
 ---
 
-### [DONE] Phase 9: Technical Stack (The "Algorithm Developer" Choice)
+### [DONE] Phase 9: Technical Stack (UI Selection: Streamlit)
+
+**Decision Record:** Streamlit has been selected as the primary UI framework, replacing the legacy React/JavaScript implementation. This shift consolidates the entire stack into pure Python, significantly reducing architectural complexity and eliminating the need for a JS/Python bridge (Pyodide).
 
 To leverage your **Python** knowledge and ensure rapid development, the application uses **Streamlit**.
 
@@ -320,12 +322,12 @@ The Graph View does not display the raw history; it visualizes the output of the
 * **Draggable Nodes:** Users can grab a bubble and move it to reorganize the view; the arrows follow the bubbles elastically.
 * **Focus State:** Tapping a bubble highlights only the arrows connected to that specific person, dimming the rest of the graph to reduce visual noise.
 
-### 4. Technical Tools (Browser-Side)
+### 4. Technical Tools
 
-To implement this within the React/Python stack:
+To implement this within the Streamlit stack:
 
-* **React Force Graph (`react-force-graph-2d`):** A lightweight, high-performance wrapper for D3.js that handles the canvas rendering and physics.
-* **D3-Force:** If you prefer more granular control, use the raw D3 physics module to calculate $x,y$ coordinates for your SVG bubbles.
+* **Streamlit Agraph (`streamlit-agraph`):** A high-performance Streamlit component that enables graph visualization using a physics engine.
+* **NetworkX:** Used on the backend to manage the graph structure and pass data to `streamlit-agraph`.
 
 ### 5. Terminology for the User
 
@@ -379,12 +381,12 @@ To ensure scalability and maintainability, the application follows a **Decoupled
 
 ### 4. `split-client` (The Presentation Layer)
 
-**Role:** The React-based Web UI.
+**Role:** The Streamlit-based UI.
 
 * **Key Responsibilities:** Rendering the Bill list, the Debt Map (Graph View), and handling user input.
 * **Design Patterns:**
-* **Observer Pattern:** The UI "subscribes" to the data state. When the `split-io` detects a change in a Google Drive file, the state updates, and the UI re-renders automatically.
-* **Composite Pattern:** UI elements (Buttons, Inputs, List Items) are built as small, reusable components that compose larger views.
+* **Observer Pattern:** The UI "subscribes" to the data state (via Streamlit's reactive model). When the `split-io` detects a change in a Google Drive file, the state updates, and the UI re-renders automatically.
+* **Composite Pattern:** UI elements are built as reusable Streamlit components and functions that compose larger views.
 
 
 
@@ -396,9 +398,9 @@ To ensure scalability and maintainability, the application follows a **Decoupled
 
 * **Modular Concept:** **Infrastructure as Code (IaC)**.
 * **Components:**
-* **CI/CD Pipeline (GitHub Actions):** Automatically runs Python unit tests for the `split-core` and linting for the `split-client` on every push.
-* **Edge Hosting (Vercel):** Hosts the static assets.
-* **Environment Configuration:** Separation of "Development" and "Production" API keys for Google OAuth via `.env` files.
+* **CI/CD Pipeline (GitHub Actions):** Automatically runs Python unit tests for the `split-core` and quality checks on every push.
+* **Streamlit Cloud:** Hosts the application and handles the environment.
+* **Environment Configuration:** Management of API keys for Google OAuth via Streamlit Secrets or `.env` files.
 
 
 
@@ -409,9 +411,9 @@ To ensure scalability and maintainability, the application follows a **Decoupled
 | Module | Input | Output | Dependency |
 | --- | --- | --- | --- |
 | **`split-core`** | List of Events | Calculated Balances | None (Standalone) |
-| **`split-io`** | Drive API Signals | Raw CSV Strings | Google GIS Library |
+| **`split-io`** | Drive API Signals | Raw CSV Strings | Python Google SDK |
 | **`split-bridge`** | User Actions | Unified State | `core` + `io` |
-| **`split-client`** | User Clicks | Visual Feedback | `bridge` |
+| **`split-client`** | User Interactions | Visual Feedback | `bridge` |
 
 ---
 

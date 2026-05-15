@@ -1,9 +1,0 @@
-{
-  "name": "moneysplitter",
-  "private": true,
-  "scripts": {
-    "bootstrap": "./bootstrap.sh",
-    "dev": "./run.sh",
-    "test:core": "cd core && python3 -m unittest discover"
-  }
-}
