@@ -13,8 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([
-    { id: '1', payer: 'Ariel', total_amount: '30.00', participants: ['Ariel', 'Bob', 'Charlie'], description: 'Pizza', currency: 'USD' },
-    { id: '2', payer: 'Bob', total_amount: '15.00', participants: ['Bob', 'Charlie'], description: 'Drinks', currency: 'EUR' }
+    { id: '1', payer: 'Ariel', total_amount: '30.00', participants: ['Ariel', 'Bob', 'Charlie'], description: 'Pizza', currency: 'USD', timestamp: new Date(Date.now() - 86400000).toISOString() },
+    { id: '2', payer: 'Bob', total_amount: '15.00', participants: ['Bob', 'Charlie'], description: 'Drinks', currency: 'EUR', timestamp: new Date().toISOString() }
   ]);
   
   const [results, setResults] = useState<CalculationResults | null>(null);
@@ -48,6 +48,7 @@ function App() {
     const expenseWithId: Expense = {
       ...newExpense,
       id: Math.random().toString(36).substr(2, 9),
+      timestamp: newExpense.timestamp || new Date().toISOString(),
     };
     setExpenses([...expenses, expenseWithId]);
     setShowAddBill(false);

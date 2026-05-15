@@ -5,6 +5,7 @@ export interface Expense {
   participants: string[];
   description: string;
   currency: string;
+  timestamp?: string; // ISO format
 }
 
 export interface Transaction {
