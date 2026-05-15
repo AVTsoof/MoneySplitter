@@ -63,7 +63,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 * **Core Logic:** **Strategy Pattern** for splitting and **Forex Translation**.
 * **Calculation Focus:**
-* **Unequal Splits:** Support splitting by percentages, exact amounts, or "shares" (e.g., User A has 2 shares, User B has 1).
+* **Unequal Splits:** Support splitting by percentages, exact amounts, or "shares". [DONE: ExactSplitStrategy implemented]
 * **Multi-Currency Support:**
 * Each group maintains a ledger per currency.
 * To provide a "Total Balance," the engine must fetch real-time exchange rates.

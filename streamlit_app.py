@@ -137,6 +137,9 @@ def add_bill_dialog():
         current_sum = sum(exact_amounts.values())
         if abs(Decimal(str(current_sum)) - Decimal(str(amount))) > Decimal('0.001'):
             st.warning(f"Total: {current_sum:.2f} / {amount:.2f} (Difference: {abs(current_sum - amount):.2f})")
+    elif split_method == "Equally" and participants and amount > 0:
+        share = Decimal(str(amount)) / len(participants)
+        st.caption(f"💡 Each person will pay: {get_symbol(currency)}{share:.2f}")
     
     col_d, col_t = st.columns(2)
     with col_d:
@@ -230,14 +233,19 @@ def render_transaction_summary(tx):
     
     if isinstance(tx, Expense):
         details = f"Paid by {tx.payer}"
-        sub_details = f"{len(tx.participants)} people"
+        split_type = "Equally" if isinstance(tx.strategy, EqualSplitStrategy) else "Unequally"
+        sub_details = f"{len(tx.participants)} people • Split {split_type}"
+        
+        # Add share details
+        share_info = "<br>".join([f"&nbsp;&nbsp;{p}: {symbol}{share:.2f}" for p, share in tx.shares.items()])
+        sub_details += f"<div style='font-size: 0.85em; margin-top: 5px;'>{share_info}</div>"
     else:
         details = f"{tx.sender} ➔ {tx.receiver}"
         sub_details = "Direct Transfer"
 
     st.markdown(f"""
     <div class="bill-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: top;">
             <div>
                 <span style="opacity: 0.7; font-size: 0.8em;">{date_str}</span><br>
                 <b style="font-size: 1.1em;">{tx.description}</b><br>
@@ -282,64 +290,103 @@ def render_transaction_item(original_idx, tx):
     date_str = tx.timestamp.strftime("%Y-%m-%d %H:%M")
     
     if isinstance(tx, Expense):
-        header = f"{date_str} | **{tx.description}** — {amount_display} | Paid by {tx.payer}"
+        split_type = "Equally" if isinstance(tx.strategy, EqualSplitStrategy) else "Unequally"
+        header = f"{date_str} | **{tx.description}** — {amount_display} | {tx.payer} ({split_type})"
     else:
         header = f"{date_str} | **{tx.description}** — {amount_display} | {tx.sender} ➔ {tx.receiver}"
 
     with st.expander(header):
-        with st.form(key=f"edit_form_{tx.id}"):
-            if isinstance(tx, Expense):
-                col1, col2 = st.columns([3, 1])
-                new_desc = col1.text_input("Description", value=tx.description)
-                new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                                        index=st.session_state.group_settings['active_currencies'].index(tx.currency),
-                                        key=f"curr_{tx.id}")
-                
-                new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
-                new_payer = st.selectbox("Who paid?", st.session_state.users, index=st.session_state.users.index(tx.payer) if tx.payer in st.session_state.users else 0, key=f"payer_{tx.id}")
-                new_participants = st.multiselect("Who was there?", st.session_state.users, default=tx.participants, key=f"part_{tx.id}")
-            else:
-                col1, col2 = st.columns([3, 1])
-                new_desc = col1.text_input("Description", value=tx.description)
-                new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                                        index=st.session_state.group_settings['active_currencies'].index(tx.currency),
-                                        key=f"curr_{tx.id}")
-                
-                new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
-                col_f, col_t_user = st.columns(2)
-                new_sender = col_f.selectbox("From", st.session_state.users, index=st.session_state.users.index(tx.sender) if tx.sender in st.session_state.users else 0, key=f"sender_{tx.id}")
-                new_receiver = col_t_user.selectbox("To", st.session_state.users, index=st.session_state.users.index(tx.receiver) if tx.receiver in st.session_state.users else 0, key=f"receiver_{tx.id}")
+        if isinstance(tx, Expense):
+            # Read-only summary of current shares
+            shares_list = ", ".join([f"{p}: {symbol}{s:.2f}" for p, s in tx.shares.items()])
+            st.caption(f"👥 **Current Shares:** {shares_list}")
+            st.divider()
 
-            col_d, col_t = st.columns(2)
-            new_date = col_d.date_input("Date", value=tx.timestamp.date(), key=f"date_{tx.id}")
-            new_time = col_t.time_input("Time", value=tx.timestamp.time(), key=f"time_{tx.id}")
+        # Removed st.form to allow for reactive UI (showing/hiding fields based on radio selection)
+        if isinstance(tx, Expense):
+            col1, col2 = st.columns([3, 1])
+            new_desc = col1.text_input("Description", value=tx.description, key=f"desc_{tx.id}")
+            new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
+                                    index=st.session_state.group_settings['active_currencies'].index(tx.currency),
+                                    key=f"curr_{tx.id}")
             
-            c1, c2 = st.columns(2)
-            if c1.form_submit_button("💾 Save Changes", use_container_width=True):
-                if isinstance(tx, Expense):
-                    updated_tx = Expense(
-                        id=tx.id,
-                        payer=new_payer,
-                        total_amount=Decimal(str(new_amount)),
-                        participants=new_participants,
-                        description=new_desc,
-                        currency=new_curr,
-                        timestamp=datetime.combine(new_date, new_time)
-                    )
-                else:
-                    updated_tx = Transfer(
-                        id=tx.id,
-                        sender=new_sender,
-                        receiver=new_receiver,
-                        amount=Decimal(str(new_amount)),
-                        currency=new_curr,
-                        description=new_desc,
-                        timestamp=datetime.combine(new_date, new_time)
-                    )
-                confirm_save_dialog(original_idx, updated_tx)
+            new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
+            new_payer = st.selectbox("Who paid?", st.session_state.users, index=st.session_state.users.index(tx.payer) if tx.payer in st.session_state.users else 0, key=f"payer_{tx.id}")
+            new_participants = st.multiselect("Who was there?", st.session_state.users, default=tx.participants, key=f"part_{tx.id}")
             
-            if c2.form_submit_button("🗑️ Delete", use_container_width=True):
-                confirm_delete_dialog(original_idx, tx)
+            current_split_method = "Equally" if isinstance(tx.strategy, EqualSplitStrategy) else "Unequally"
+            new_split_method = st.radio("Split Method", ["Equally", "Unequally"], 
+                                      index=0 if current_split_method == "Equally" else 1, 
+                                      horizontal=True, key=f"split_method_{tx.id}")
+            
+            new_exact_amounts = {}
+            if new_split_method == "Unequally" and new_participants:
+                st.write("Specify amounts for each person:")
+                cols = st.columns(len(new_participants))
+                for i, p in enumerate(new_participants):
+                    # Pre-fill with existing share for better UX
+                    existing_share = tx.shares.get(p, Decimal('0'))
+                    new_exact_amounts[p] = cols[i].number_input(f"{p}", min_value=0.0, value=float(existing_share), step=1.0, format="%.2f", key=f"exact_{tx.id}_{p}")
+                
+                current_sum = sum(new_exact_amounts.values())
+                if abs(Decimal(str(current_sum)) - Decimal(str(new_amount))) > Decimal('0.001'):
+                    st.warning(f"Total: {current_sum:.2f} / {new_amount:.2f} (Difference: {abs(current_sum - new_amount):.2f})")
+        else:
+            col1, col2 = st.columns([3, 1])
+            new_desc = col1.text_input("Description", value=tx.description, key=f"desc_{tx.id}")
+            new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
+                                    index=st.session_state.group_settings['active_currencies'].index(tx.currency),
+                                    key=f"curr_{tx.id}")
+            
+            new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
+            col_f, col_t_user = st.columns(2)
+            new_sender = col_f.selectbox("From", st.session_state.users, index=st.session_state.users.index(tx.sender) if tx.sender in st.session_state.users else 0, key=f"sender_{tx.id}")
+            new_receiver = col_t_user.selectbox("To", st.session_state.users, index=st.session_state.users.index(tx.receiver) if tx.receiver in st.session_state.users else 0, key=f"receiver_{tx.id}")
+
+        col_d, col_t = st.columns(2)
+        new_date = col_d.date_input("Date", value=tx.timestamp.date(), key=f"date_{tx.id}")
+        new_time = col_t.time_input("Time", value=tx.timestamp.time(), key=f"time_{tx.id}")
+        
+        c1, c2 = st.columns(2)
+        
+        # Validation for Save button
+        save_disabled = False
+        if isinstance(tx, Expense):
+            if new_split_method == "Unequally":
+                save_disabled = abs(Decimal(str(sum(new_exact_amounts.values()))) - Decimal(str(new_amount))) > Decimal('0.001')
+            if not new_desc.strip() or new_amount <= 0 or not new_participants:
+                save_disabled = True
+        else:
+            if new_amount <= 0 or new_sender == new_receiver:
+                save_disabled = True
+
+        if c1.button("💾 Save Changes", use_container_width=True, disabled=save_disabled, key=f"save_{tx.id}", type="primary"):
+            if isinstance(tx, Expense):
+                strategy = EqualSplitStrategy() if new_split_method == "Equally" else ExactSplitStrategy({k: Decimal(str(v)) for k, v in new_exact_amounts.items()})
+                updated_tx = Expense(
+                    id=tx.id,
+                    payer=new_payer,
+                    total_amount=Decimal(str(new_amount)),
+                    participants=new_participants,
+                    description=new_desc,
+                    currency=new_curr,
+                    strategy=strategy,
+                    timestamp=datetime.combine(new_date, new_time)
+                )
+            else:
+                updated_tx = Transfer(
+                    id=tx.id,
+                    sender=new_sender,
+                    receiver=new_receiver,
+                    amount=Decimal(str(new_amount)),
+                    currency=new_curr,
+                    description=new_desc,
+                    timestamp=datetime.combine(new_date, new_time)
+                )
+            confirm_save_dialog(original_idx, updated_tx)
+        
+        if c2.button("🗑️ Delete", use_container_width=True, key=f"del_{tx.id}"):
+            confirm_delete_dialog(original_idx, tx)
 
 # --- UI Header ---
 st.title("💸 MoneySplitter")
