@@ -51,6 +51,35 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import streamlit_agraph as sa
 import json
 
+CURRENCY_SYMBOLS = {
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'ILS': '₪',
+    'JPY': '¥',
+    'CAD': 'C$',
+    'AUD': 'A$',
+}
+
+# Mock exchange rates to USD for prototype
+MOCK_RATES_TO_USD = {
+    'USD': Decimal('1.0'),
+    'EUR': Decimal('1.1'),
+    'GBP': Decimal('1.25'),
+    'ILS': Decimal('0.28'),
+    'JPY': Decimal('0.0067'),
+    'CAD': Decimal('0.74'),
+    'AUD': Decimal('0.66'),
+}
+
+def get_exchange_rate(from_curr, to_curr):
+    rate_to_usd = MOCK_RATES_TO_USD.get(from_curr, Decimal('1.0'))
+    target_from_usd = Decimal('1.0') / MOCK_RATES_TO_USD.get(to_curr, Decimal('1.0'))
+    return rate_to_usd * target_from_usd
+
+def get_symbol(currency_code):
+    return CURRENCY_SYMBOLS.get(currency_code, f"{currency_code} ")
+
 def agraph_fixed(nodes, edges, config, key=None):
     nodes_data = [node.to_dict() for node in nodes]
     edges_data = [edge.to_dict() for edge in edges]
@@ -67,9 +96,17 @@ if 'users' not in st.session_state:
     st.session_state.users = ['You', 'Ariel', 'Bob', 'Charlie', 'David']
 if 'graph_reset_key' not in st.session_state:
     st.session_state.graph_reset_key = 0
+if 'group_settings' not in st.session_state:
+    st.session_state.group_settings = {
+        'default_currency': 'USD',
+        'active_currencies': ['USD', 'EUR', 'ILS']
+    }
 
 def get_ledger():
-    ledger = Ledger(GroupSettings(default_currency='USD'))
+    ledger = Ledger(GroupSettings(
+        default_currency=st.session_state.group_settings['default_currency'],
+        active_currencies=set(st.session_state.group_settings['active_currencies'])
+    ))
     for exp in st.session_state.expenses:
         ledger.add_expense(exp)
     return ledger
@@ -79,7 +116,7 @@ st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4 = st.tabs(["📜 Bills", "💰 Bottom Line", "🗺️ Map", "📊 Details"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📜 Bills", "💰 Bottom Line", "🗺️ Map", "📊 Details", "⚙️ Settings"])
 
 with tab1:
     st.subheader("Group Bills")
@@ -87,8 +124,14 @@ with tab1:
     # Add Bill Button
     with st.expander("➕ Add a Bill", expanded=False):
         with st.form("add_bill_form", clear_on_submit=True):
-            description = st.text_input("What was it for?", placeholder="e.g. Pizza")
-            amount = st.number_input("How much?", min_value=0.01, step=0.01, format="%.2f")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                description = st.text_input("What was it for?", placeholder="e.g. Pizza")
+            with col2:
+                currency = st.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
+                                      index=st.session_state.group_settings['active_currencies'].index(st.session_state.group_settings['default_currency']))
+            
+            amount = st.number_input(f"How much?", min_value=0.01, step=0.01, format="%.2f")
             payer = st.selectbox("Who paid?", st.session_state.users)
             participants = st.multiselect("Who was there?", st.session_state.users, default=st.session_state.users)
             
@@ -105,7 +148,7 @@ with tab1:
                         total_amount=Decimal(str(amount)),
                         participants=participants,
                         description=description,
-                        currency='USD'
+                        currency=currency
                     )
                     st.session_state.expenses.append(new_exp)
                     st.success(f"Added '{description}'")
@@ -113,6 +156,16 @@ with tab1:
 
     # Bills List
     for exp in reversed(st.session_state.expenses):
+        symbol = get_symbol(exp.currency)
+        default_curr = st.session_state.group_settings['default_currency']
+        
+        amount_display = f"{symbol}{exp.total_amount:.2f}"
+        if exp.currency != default_curr:
+            rate = get_exchange_rate(exp.currency, default_curr)
+            default_amount = exp.total_amount * rate
+            default_symbol = get_symbol(default_curr)
+            amount_display += f" <span style='font-size: 0.8em; opacity: 0.8;'>({default_symbol}{default_amount:.2f})</span>"
+
         with st.container():
             st.markdown(f"""
             <div class="bill-card">
@@ -122,7 +175,7 @@ with tab1:
                         <span style="opacity: 0.7; font-size: 0.9em;">Paid by {exp.payer}</span>
                     </div>
                     <div style="text-align: right;">
-                        <span style="font-weight: bold; font-size: 1.1em;">${exp.total_amount:.2f}</span><br>
+                        <span style="font-weight: bold; font-size: 1.1em;">{amount_display}</span><br>
                         <span style="opacity: 0.6; font-size: 0.8em;">{len(exp.participants)} people</span>
                     </div>
                 </div>
@@ -132,93 +185,145 @@ with tab1:
 with tab2:
     st.subheader("The Bottom Line")
     ledger = get_ledger()
-    balances = ledger.get_net_balances().get('USD', {})
+    multi_balances = ledger.get_net_balances()
     
-    if not balances:
+    if not multi_balances:
         st.info("No bills yet. Add some to see balances!")
     else:
-        # Display individual balances
-        for user in st.session_state.users:
-            balance = balances.get(user, Decimal('0'))
-            if balance > 0:
-                st.markdown(f"**{user}**: <span class='balance-green'>is owed ${balance:.2f}</span>", unsafe_allow_html=True)
-            elif balance < 0:
-                st.markdown(f"**{user}**: <span class='balance-orange'>owes ${abs(balance):.2f}</span>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"**{user}**: <span class='balance-neutral'>is settled up</span>", unsafe_allow_html=True)
+        # If multiple currencies, let user select which one to view or show all?
+        # For "The Bottom Line", showing all currencies that have non-zero balances makes sense.
+        currencies_with_balances = [c for c, b in multi_balances.items() if any(v != 0 for v in b.values())]
         
-        st.divider()
-        st.subheader("Smart Settle")
-        simplified = DebtSimplifier.simplify({'USD': balances}).get('USD', [])
-        
-        if not simplified:
+        if not currencies_with_balances:
             st.success("Everyone is settled up! 🎉")
         else:
-            for tx in simplified:
-                st.markdown(f"🤝 **{tx['from']}** needs to pay **{tx['to']}** `${tx['amount']}`")
+            for curr in currencies_with_balances:
+                st.write(f"### Balances in {curr}")
+                balances = multi_balances.get(curr, {})
+                symbol = get_symbol(curr)
+                
+                for user in st.session_state.users:
+                    balance = balances.get(user, Decimal('0'))
+                    if balance > 0:
+                        st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
+                    elif balance < 0:
+                        st.markdown(f"**{user}**: <span class='balance-orange'>owes {symbol}{abs(balance):.2f}</span>", unsafe_allow_html=True)
+                
+                st.divider()
+                st.subheader(f"Smart Settle ({curr})")
+                simplified = DebtSimplifier.simplify({curr: balances}).get(curr, [])
+                
+                if not simplified:
+                    st.write("Settled up in this currency.")
+                else:
+                    for tx in simplified:
+                        st.markdown(f"🤝 **{tx['from']}** needs to pay **{tx['to']}** `{symbol}{tx['amount']}`")
+                st.write("")
 
 with tab3:
     st.subheader("Debt Map")
     ledger = get_ledger()
-    balances = ledger.get_net_balances().get('USD', {})
-    simplified = DebtSimplifier.simplify({'USD': balances}).get('USD', [])
-    
-    if not simplified:
+    multi_balances = ledger.get_net_balances()
+    currencies_with_debts = [c for c, b in multi_balances.items() if any(v != 0 for v in b.values())]
+
+    if not currencies_with_debts:
         st.info("No active debts to map.")
     else:
-        if st.button("🔄 Reset View"):
-            st.session_state.graph_reset_key += 1
-
-        nodes = []
-        edges = []
-        users_in_debt = set()
+        selected_curr = st.selectbox("Select Currency for Map", currencies_with_debts)
+        balances = multi_balances.get(selected_curr, {})
+        simplified = DebtSimplifier.simplify({selected_curr: balances}).get(selected_curr, [])
+        symbol = get_symbol(selected_curr)
         
-        for tx in simplified:
-            users_in_debt.add(tx['from'])
-            users_in_debt.add(tx['to'])
+        if not simplified:
+            st.info(f"No active debts in {selected_curr}.")
+        else:
+            if st.button("🔄 Reset View"):
+                st.session_state.graph_reset_key += 1
+
+            nodes = []
+            edges = []
+            users_in_debt = set()
             
-            edges.append(Edge(
-                source=tx['from'], 
-                target=tx['to'], 
-                label=f"${tx['amount']}",
-                color="#fd7e14" # Orange for debt flow
-            ))
+            for tx in simplified:
+                users_in_debt.add(tx['from'])
+                users_in_debt.add(tx['to'])
+                
+                edges.append(Edge(
+                    source=tx['from'], 
+                    target=tx['to'], 
+                    label=f"{symbol}{tx['amount']}",
+                    color="#fd7e14" # Orange for debt flow
+                ))
 
-        for user in users_in_debt:
-            balance = balances.get(user, Decimal('0'))
-            color = "#28a745" if balance > 0 else "#fd7e14"
+            for user in users_in_debt:
+                balance = balances.get(user, Decimal('0'))
+                color = "#28a745" if balance > 0 else "#fd7e14"
+                
+                nodes.append(Node(
+                    id=user, 
+                    label=user, 
+                    size=25, 
+                    color=color
+                ))
+
+            config = Config(
+                width=480,
+                height=400,
+                directed=True,
+                physics=True,
+                hierarchical=False,
+                fit=True
+            )
+
+            st.write(f"Showing debts in {selected_curr}. Arrows show flow of money.")
             
-            nodes.append(Node(
-                id=user, 
-                label=user, 
-                size=25, 
-                color=color
-            ))
-
-        config = Config(
-            width=480,
-            height=400,
-            directed=True,
-            physics=True,
-            hierarchical=False,
-            fit=True
-        )
-
-        st.write("Arrows show who needs to pay who. Green is receiving, Orange is paying.")
-        
-        with st.container(border=True):
-            agraph_fixed(nodes=nodes, edges=edges, config=config, key=f"graph_{st.session_state.graph_reset_key}")
+            with st.container(border=True):
+                agraph_fixed(nodes=nodes, edges=edges, config=config, key=f"graph_{selected_curr}_{st.session_state.graph_reset_key}")
 
 with tab4:
     st.subheader("Debt Details")
     ledger = get_ledger()
-    balances = ledger.get_net_balances().get('USD', {})
-    simplified = DebtSimplifier.simplify({'USD': balances}).get('USD', [])
+    multi_balances = ledger.get_net_balances()
+    simplified_all = DebtSimplifier.simplify(multi_balances)
     
-    if not simplified:
+    any_debts = False
+    for curr, txs in simplified_all.items():
+        if txs:
+            any_debts = True
+            st.write(f"### {curr} Transactions")
+            df = pd.DataFrame(txs)
+            symbol = get_symbol(curr)
+            df['amount'] = df['amount'].apply(lambda x: f"{symbol}{x}")
+            st.table(df)
+    
+    if not any_debts:
         st.info("No active debts.")
-    else:
-        st.table(pd.DataFrame(simplified))
+
+with tab5:
+    st.subheader("⚙️ Group Settings")
+    
+    with st.expander("👥 Members", expanded=True):
+        new_user = st.text_input("Add new member")
+        if st.button("Add Member"):
+            if new_user and new_user not in st.session_state.users:
+                st.session_state.users.append(new_user)
+                st.success(f"Added {new_user}")
+                st.rerun()
+        
+        st.write("Current members:", ", ".join(st.session_state.users))
+
+    with st.expander("💱 Currencies", expanded=True):
+        all_options = list(CURRENCY_SYMBOLS.keys())
+        active = st.multiselect("Active Currencies", all_options, default=st.session_state.group_settings['active_currencies'])
+        
+        default = st.selectbox("Default Currency", active, 
+                               index=active.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active else 0)
+        
+        if st.button("Save Currency Settings"):
+            st.session_state.group_settings['active_currencies'] = active
+            st.session_state.group_settings['default_currency'] = default
+            st.success("Settings saved!")
+            st.rerun()
 
 
 # Footer
