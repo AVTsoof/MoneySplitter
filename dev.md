@@ -179,21 +179,22 @@ Since this app is non-commercial and handles no payments, you can host it entire
 
 ---
 
-### [IN PROGRESS] Phase 9: Technical Stack (The "Algorithm Developer" Choice)
+### [DONE] Phase 9: Technical Stack (The "Algorithm Developer" Choice)
 
-To leverage your **Python** knowledge while building a high-performance web app, you should use a **Hybrid WASM Architecture**.
+To leverage your **Python** knowledge and ensure rapid development, the application uses **Streamlit**.
 
-* **Frontend UI: React (JavaScript/TypeScript)**
-* **Why:** You need a reactive interface that updates the balance sheet the moment a CSV syncs. JavaScript is the native language of the browser and is required for the "Google Identity" and "Drive API" libraries.
-
-
-* **Logic Engine: Pyodide (Python in the Browser)**
-* **Why:** You can write your complex debt-simplification and ledger-sorting logic in **Python**. **Pyodide** is a port of CPython to WebAssembly (WASM).
-* **Implementation:** Your React UI handles the buttons and Google login, then passes the raw CSV data into a Python worker. The Python code runs the math (using `Pandas` if needed) and returns the final balances to the UI.
+* **Frontend & Logic: Streamlit (Python)**
+* **Why:** Streamlit allows building highly interactive, data-driven web applications using only Python. This eliminates the need for a JavaScript/TypeScript frontend and simplifies the bridge between the UI and the mathematical engine.
+* **Architecture:** The application runs as a Python script. State is managed via `st.session_state`.
+* **Deployment:** Can be hosted on Streamlit Cloud, Hugging Face, or any Python-compatible server.
 
 
-* **CSV Parsing: Papa Parse (JS)**
-* **Why:** It is the fastest browser-based library for converting CSV strings into JSON objects for your Python engine to digest.
+* **Logic Engine: split-core (Python)**
+* **Why:** Pure Python implementation of debt-simplification and ledger-sorting logic. Integrated directly into the Streamlit app.
+
+
+* **Data Handling: Pandas (Python)**
+* **Why:** Industry standard for data manipulation, used for parsing and analyzing the chronological ledger.
 
 
 
