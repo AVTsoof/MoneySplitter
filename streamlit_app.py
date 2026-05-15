@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from decimal import Decimal
-from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, Transaction, ExactSplitStrategy
+from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, Transaction, ExactSplitStrategy, CurrencyConverter
 import uuid
 from io_layer.local_fs import LocalFileSystemIO
 from bridge.orchestrator import Bridge
@@ -64,21 +64,11 @@ CURRENCY_SYMBOLS = {
     'AUD': 'A$',
 }
 
-# Mock exchange rates to USD for prototype
-MOCK_RATES_TO_USD = {
-    'USD': Decimal('1.0'),
-    'EUR': Decimal('1.1'),
-    'GBP': Decimal('1.25'),
-    'ILS': Decimal('0.28'),
-    'JPY': Decimal('0.0067'),
-    'CAD': Decimal('0.74'),
-    'AUD': Decimal('0.66'),
-}
-
 def get_exchange_rate(from_curr, to_curr):
-    rate_to_usd = MOCK_RATES_TO_USD.get(from_curr, Decimal('1.0'))
-    target_from_usd = Decimal('1.0') / MOCK_RATES_TO_USD.get(to_curr, Decimal('1.0'))
-    return rate_to_usd * target_from_usd
+    if 'bridge' not in st.session_state:
+        return Decimal('1.0')
+    rates_data = st.session_state.bridge.get_exchange_rates().get("rates", {})
+    return CurrencyConverter.get_exchange_rate(rates_data, from_curr, to_curr)
 
 def get_symbol(currency_code):
     return CURRENCY_SYMBOLS.get(currency_code, f"{currency_code} ")
@@ -280,6 +270,24 @@ def confirm_save_dialog(idx, updated_tx):
         st.toast("Updating is not yet supported in this append-only phase.")
         st.rerun()
 
+@st.dialog("🔄 Updating Conversion Table")
+def update_rates_dialog():
+    import time
+    st.write("Fetching the latest exchange rates from the Frankfurter API...")
+    st.caption("A 5-second timeout is active to prevent hanging.")
+    
+    with st.spinner("Please wait..."):
+        success = st.session_state.bridge.update_exchange_rates(force=True, timeout=5.0)
+        
+    if success:
+        st.success("Exchange rates updated successfully!")
+        time.sleep(1.5)
+        st.rerun()
+    else:
+        st.error("Request timed out or failed. Please check your internet connection and try again.")
+        if st.button("Close", use_container_width=True):
+            st.rerun()
+
 def render_transaction_item(original_idx, tx):
     symbol = get_symbol(tx.currency)
     default_curr = st.session_state.group_settings['default_currency']
@@ -409,7 +417,7 @@ st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📜 Transactions", "💰 Bottom Line", "🗺️ Map", "📊 Details", "⚙️ Settings"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📜 Transactions", "💰 Bottom Line", "🗺️ Map", "📊 Details", "💱 Rates", "⚙️ Settings"])
 
 with tab1:
     st.subheader("Group Transactions")
@@ -569,6 +577,48 @@ with tab4:
         st.info("No active debts.")
 
 with tab5:
+    st.subheader("💱 Exchange Rates")
+    
+    rates_info = st.session_state.bridge.get_exchange_rates()
+    last_updated = rates_info.get("timestamp", 0)
+    rates = rates_info.get("rates", {})
+    
+    if last_updated:
+        updated_dt = datetime.fromtimestamp(last_updated)
+        st.caption(f"Last updated: {updated_dt.strftime('%Y-%m-%d %H:%M:%S')} (via Frankfurter API)")
+        if updated_dt.date() != date.today():
+            st.warning("⚠️ The exchange rates are not from today. Check your internet connection or try updating manually.")
+    else:
+        st.caption("No exchange rates downloaded yet.")
+        
+    if rates:
+        active_currencies = st.session_state.group_settings['active_currencies']
+        base_curr = st.selectbox("Select Base Currency", active_currencies, index=active_currencies.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active_currencies else 0)
+        
+        display_data = []
+        for curr in active_currencies:
+            if curr == base_curr:
+                display_data.append({
+                    "Currency": curr,
+                    "Value": f"{get_symbol(curr)}1.0000"
+                })
+            else:
+                # The user wants how much of `curr` makes 1 `base_curr`
+                # So if base is USD ($1.0), and 1 USD = 0.85 EUR, then EUR = €0.85
+                # rate = get_exchange_rate("USD", "EUR") -> 0.85
+                rate = get_exchange_rate(base_curr, curr)
+                display_data.append({
+                    "Currency": curr,
+                    "Value": f"{get_symbol(curr)}{rate:.4f}"
+                })
+        
+        if display_data:
+            st.dataframe(pd.DataFrame(display_data), use_container_width=True, hide_index=True)
+            
+    if st.button("🔄 Update Conversion Table", type="primary", use_container_width=True):
+        update_rates_dialog()
+
+with tab6:
     st.subheader("⚙️ Group Settings")
     
     with st.expander("👥 Members", expanded=True):
