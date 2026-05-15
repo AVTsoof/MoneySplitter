@@ -111,6 +111,37 @@ def get_ledger():
         ledger.add_expense(exp)
     return ledger
 
+@st.dialog("➕ Add a Bill")
+def add_bill_dialog():
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        description = st.text_input("What was it for? :red[*]", placeholder="e.g. Pizza")
+    with col2:
+        currency = st.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
+                              index=st.session_state.group_settings['active_currencies'].index(st.session_state.group_settings['default_currency']))
+    
+    amount = st.number_input("How much? :red[*]", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+    payer = st.selectbox("Who paid?", st.session_state.users)
+    participants = st.multiselect("Who was there? :red[*]", st.session_state.users, default=st.session_state.users)
+    
+    # Logic: Disable button until required fields are filled
+    is_valid = description.strip() != "" and amount > 0 and len(participants) > 0
+    
+    if st.button("Add Bill", use_container_width=True, type="primary", disabled=not is_valid):
+        new_exp = Expense(
+            id=str(uuid.uuid4()),
+            payer=payer,
+            total_amount=Decimal(str(amount)),
+            participants=participants,
+            description=description,
+            currency=currency
+        )
+        st.session_state.expenses.append(new_exp)
+        st.rerun()
+    
+    if not is_valid:
+        st.caption("⚠️ Please provide a description and amount to enable the button.")
+
 # --- UI Header ---
 st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
@@ -122,37 +153,8 @@ with tab1:
     st.subheader("Group Bills")
     
     # Add Bill Button
-    with st.expander("➕ Add a Bill", expanded=False):
-        with st.form("add_bill_form", clear_on_submit=True):
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                description = st.text_input("What was it for?", placeholder="e.g. Pizza")
-            with col2:
-                currency = st.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                                      index=st.session_state.group_settings['active_currencies'].index(st.session_state.group_settings['default_currency']))
-            
-            amount = st.number_input(f"How much?", min_value=0.01, step=0.01, format="%.2f")
-            payer = st.selectbox("Who paid?", st.session_state.users)
-            participants = st.multiselect("Who was there?", st.session_state.users, default=st.session_state.users)
-            
-            submit = st.form_submit_button("Add Bill")
-            if submit:
-                if not description:
-                    st.error("Please enter a description")
-                elif not participants:
-                    st.error("At least one participant is required")
-                else:
-                    new_exp = Expense(
-                        id=str(uuid.uuid4()),
-                        payer=payer,
-                        total_amount=Decimal(str(amount)),
-                        participants=participants,
-                        description=description,
-                        currency=currency
-                    )
-                    st.session_state.expenses.append(new_exp)
-                    st.success(f"Added '{description}'")
-                    st.rerun()
+    if st.button("➕ Add a Bill", type="primary"):
+        add_bill_dialog()
 
     # Bills List
     for exp in reversed(st.session_state.expenses):
