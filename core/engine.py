@@ -116,12 +116,14 @@ class ShareSplitStrategy(SplitStrategy):
             "shares": {k: str(v) for k, v in self.shares.items()}
         }
 
+from datetime import datetime
+
 class Expense:
     """
     Represents an atomic unit of expense.
     Follows the Command pattern for immutability and event sourcing.
     """
-    def __init__(self, id: str, payer: str, total_amount: Decimal, participants: List[str], description: str, strategy: SplitStrategy = None, currency: str = None):
+    def __init__(self, id: str, payer: str, total_amount: Decimal, participants: List[str], description: str, strategy: SplitStrategy = None, currency: str = None, timestamp: datetime = None):
         self.id = id
         self.payer = payer
         self.total_amount = Decimal(str(total_amount))
@@ -129,6 +131,7 @@ class Expense:
         self.description = description
         self.strategy = strategy or EqualSplitStrategy()
         self.currency = currency # Will be set by Ledger if None
+        self.timestamp = timestamp or datetime.now()
         
         # Calculate shares immediately
         self.shares = self.strategy.calculate_shares(self.total_amount, self.participants)
@@ -142,7 +145,8 @@ class Expense:
             "participants": self.participants,
             "description": self.description,
             "shares": {k: str(v) for k, v in self.shares.items()},
-            "strategy": self.strategy.to_dict()
+            "strategy": self.strategy.to_dict(),
+            "timestamp": self.timestamp.isoformat()
         }
 
 import heapq

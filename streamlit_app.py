@@ -50,6 +50,7 @@ st.markdown("""
 from streamlit_agraph import agraph, Node, Edge, Config
 import streamlit_agraph as sa
 import json
+from datetime import datetime, date, time
 
 CURRENCY_SYMBOLS = {
     'USD': '$',
@@ -89,8 +90,8 @@ def agraph_fixed(nodes, edges, config, key=None):
 
 if 'expenses' not in st.session_state:
     st.session_state.expenses = [
-        Expense(id='1', payer='Ariel', total_amount=Decimal('30.00'), participants=['Ariel', 'Bob', 'Charlie'], description='Pizza', currency='USD'),
-        Expense(id='2', payer='Bob', total_amount=Decimal('15.00'), participants=['Bob', 'Charlie'], description='Drinks', currency='USD')
+        Expense(id='1', payer='Ariel', total_amount=Decimal('30.00'), participants=['Ariel', 'Bob', 'Charlie'], description='Pizza', currency='USD', timestamp=datetime(2026, 5, 14, 19, 30)),
+        Expense(id='2', payer='Bob', total_amount=Decimal('15.00'), participants=['Bob', 'Charlie'], description='Drinks', currency='USD', timestamp=datetime(2026, 5, 14, 21, 0))
     ]
 if 'users' not in st.session_state:
     st.session_state.users = ['You', 'Ariel', 'Bob', 'Charlie', 'David']
@@ -124,23 +125,77 @@ def add_bill_dialog():
     payer = st.selectbox("Who paid?", st.session_state.users)
     participants = st.multiselect("Who was there? :red[*]", st.session_state.users, default=st.session_state.users)
     
+    col_d, col_t = st.columns(2)
+    with col_d:
+        bill_date = st.date_input("Date", value=date.today())
+    with col_t:
+        bill_time = st.time_input("Time", value=datetime.now().time())
+    
     # Logic: Disable button until required fields are filled
     is_valid = description.strip() != "" and amount > 0 and len(participants) > 0
     
     if st.button("Add Bill", use_container_width=True, type="primary", disabled=not is_valid):
+        full_timestamp = datetime.combine(bill_date, bill_time)
         new_exp = Expense(
             id=str(uuid.uuid4()),
             payer=payer,
             total_amount=Decimal(str(amount)),
             participants=participants,
             description=description,
-            currency=currency
+            currency=currency,
+            timestamp=full_timestamp
         )
         st.session_state.expenses.append(new_exp)
         st.rerun()
     
     if not is_valid:
         st.caption("⚠️ Please provide a description and amount to enable the button.")
+
+def render_expense_summary(exp):
+    symbol = get_symbol(exp.currency)
+    default_curr = st.session_state.group_settings['default_currency']
+    amount_display = f"{symbol}{exp.total_amount:.2f}"
+    
+    if exp.currency != default_curr:
+        rate = get_exchange_rate(exp.currency, default_curr)
+        default_amount = exp.total_amount * rate
+        default_symbol = get_symbol(default_curr)
+        amount_display += f" ({default_symbol}{default_amount:.2f})"
+    
+    date_str = exp.timestamp.strftime("%Y-%m-%d %H:%M")
+    
+    st.markdown(f"""
+    <div class="bill-card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="opacity: 0.7; font-size: 0.8em;">{date_str}</span><br>
+                <b style="font-size: 1.1em;">{exp.description}</b><br>
+                <span style="opacity: 0.7; font-size: 0.9em;">Paid by {exp.payer}</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-weight: bold; font-size: 1.1em;">{amount_display}</span><br>
+                <span style="opacity: 0.6; font-size: 0.8em;">{len(exp.participants)} people</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+@st.dialog("🗑️ Confirm Delete")
+def confirm_delete_dialog(idx, exp):
+    st.warning("Are you sure you want to delete this bill?")
+    render_expense_summary(exp)
+    st.write("This action cannot be undone.")
+    if st.button("Yes, Delete", type="primary", use_container_width=True):
+        st.session_state.expenses.pop(idx)
+        st.rerun()
+
+@st.dialog("💾 Confirm Save")
+def confirm_save_dialog(idx, updated_exp):
+    st.write("Save changes to this bill?")
+    render_expense_summary(updated_exp)
+    if st.button("Yes, Save Changes", type="primary", use_container_width=True):
+        st.session_state.expenses[idx] = updated_exp
+        st.rerun()
 
 # --- UI Header ---
 st.title("💸 MoneySplitter")
@@ -157,7 +212,10 @@ with tab1:
         add_bill_dialog()
 
     # Bills List
-    for exp in reversed(st.session_state.expenses):
+    for i, exp in enumerate(reversed(st.session_state.expenses)):
+        # Reversed index for consistent identification if needed
+        original_idx = len(st.session_state.expenses) - 1 - i
+        
         symbol = get_symbol(exp.currency)
         default_curr = st.session_state.group_settings['default_currency']
         
@@ -166,23 +224,41 @@ with tab1:
             rate = get_exchange_rate(exp.currency, default_curr)
             default_amount = exp.total_amount * rate
             default_symbol = get_symbol(default_curr)
-            amount_display += f" <span style='font-size: 0.8em; opacity: 0.8;'>({default_symbol}{default_amount:.2f})</span>"
+            amount_display += f" ({default_symbol}{default_amount:.2f})"
 
-        with st.container():
-            st.markdown(f"""
-            <div class="bill-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <b style="font-size: 1.1em;">{exp.description}</b><br>
-                        <span style="opacity: 0.7; font-size: 0.9em;">Paid by {exp.payer}</span>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-weight: bold; font-size: 1.1em;">{amount_display}</span><br>
-                        <span style="opacity: 0.6; font-size: 0.8em;">{len(exp.participants)} people</span>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        date_str = exp.timestamp.strftime("%Y-%m-%d %H:%M")
+        
+        with st.expander(f"{date_str} | **{exp.description}** — {amount_display} | {exp.payer}"):
+            with st.form(key=f"edit_form_{exp.id}"):
+                col1, col2 = st.columns([3, 1])
+                new_desc = col1.text_input("Description", value=exp.description)
+                new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
+                                        index=st.session_state.group_settings['active_currencies'].index(exp.currency),
+                                        key=f"curr_{exp.id}")
+                
+                new_amount = st.number_input("Amount", min_value=0.0, value=float(exp.total_amount), step=1.0, format="%.2f", key=f"amt_{exp.id}")
+                new_payer = st.selectbox("Who paid?", st.session_state.users, index=st.session_state.users.index(exp.payer) if exp.payer in st.session_state.users else 0, key=f"payer_{exp.id}")
+                new_participants = st.multiselect("Who was there?", st.session_state.users, default=exp.participants, key=f"part_{exp.id}")
+                
+                col_d, col_t = st.columns(2)
+                new_date = col_d.date_input("Date", value=exp.timestamp.date(), key=f"date_{exp.id}")
+                new_time = col_t.time_input("Time", value=exp.timestamp.time(), key=f"time_{exp.id}")
+                
+                c1, c2 = st.columns(2)
+                if c1.form_submit_button("💾 Save Changes", use_container_width=True):
+                    updated_exp = Expense(
+                        id=exp.id,
+                        payer=new_payer,
+                        total_amount=Decimal(str(new_amount)),
+                        participants=new_participants,
+                        description=new_desc,
+                        currency=new_curr,
+                        timestamp=datetime.combine(new_date, new_time)
+                    )
+                    confirm_save_dialog(original_idx, updated_exp)
+                
+                if c2.form_submit_button("🗑️ Delete Bill", use_container_width=True):
+                    confirm_delete_dialog(original_idx, exp)
 
 with tab2:
     st.subheader("The Bottom Line")
