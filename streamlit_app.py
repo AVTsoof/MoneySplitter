@@ -19,9 +19,6 @@ st.markdown("""
         max-width: 500px;
         margin: 0 auto;
     }
-    .main {
-        background-color: #f8f9fa;
-    }
     .stButton>button {
         width: 100%;
         border-radius: 12px;
@@ -29,12 +26,11 @@ st.markdown("""
         font-weight: bold;
     }
     .bill-card {
-        background-color: white;
         padding: 15px;
         border-radius: 15px;
         margin-bottom: 10px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border: 1px solid #eee;
+        border: 1px solid rgba(128, 128, 128, 0.3);
     }
     .balance-green {
         color: #28a745;
@@ -51,6 +47,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Initialize Session State
+from streamlit_agraph import agraph, Node, Edge, Config
+import streamlit_agraph as sa
+import json
+
+def agraph_fixed(nodes, edges, config, key=None):
+    nodes_data = [node.to_dict() for node in nodes]
+    edges_data = [edge.to_dict() for edge in edges]
+    config_json = json.dumps(config.__dict__)
+    data_json = json.dumps({"nodes": nodes_data, "edges": edges_data})
+    return sa._agraph(data=data_json, config=config_json, key=key)
+
 if 'expenses' not in st.session_state:
     st.session_state.expenses = [
         Expense(id='1', payer='Ariel', total_amount=Decimal('30.00'), participants=['Ariel', 'Bob', 'Charlie'], description='Pizza', currency='USD'),
@@ -58,6 +65,8 @@ if 'expenses' not in st.session_state:
     ]
 if 'users' not in st.session_state:
     st.session_state.users = ['You', 'Ariel', 'Bob', 'Charlie', 'David']
+if 'graph_reset_key' not in st.session_state:
+    st.session_state.graph_reset_key = 0
 
 def get_ledger():
     ledger = Ledger(GroupSettings(default_currency='USD'))
@@ -70,7 +79,7 @@ st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
 
 # --- Tabs ---
-tab1, tab2, tab3 = st.tabs(["📜 Bills", "💰 The Bottom Line", "🗺️ The Map"])
+tab1, tab2, tab3, tab4 = st.tabs(["📜 Bills", "💰 Bottom Line", "🗺️ Map", "📊 Details"])
 
 with tab1:
     st.subheader("Group Bills")
@@ -110,11 +119,11 @@ with tab1:
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <b style="font-size: 1.1em;">{exp.description}</b><br>
-                        <span style="color: #666; font-size: 0.9em;">Paid by {exp.payer}</span>
+                        <span style="opacity: 0.7; font-size: 0.9em;">Paid by {exp.payer}</span>
                     </div>
                     <div style="text-align: right;">
                         <span style="font-weight: bold; font-size: 1.1em;">${exp.total_amount:.2f}</span><br>
-                        <span style="color: #999; font-size: 0.8em;">{len(exp.participants)} people</span>
+                        <span style="opacity: 0.6; font-size: 0.8em;">{len(exp.participants)} people</span>
                     </div>
                 </div>
             </div>
@@ -157,8 +166,9 @@ with tab3:
     if not simplified:
         st.info("No active debts to map.")
     else:
-        from streamlit_agraph import agraph, Node, Edge, Config
-        
+        if st.button("🔄 Reset View"):
+            st.session_state.graph_reset_key += 1
+
         nodes = []
         edges = []
         users_in_debt = set()
@@ -175,7 +185,6 @@ with tab3:
             ))
 
         for user in users_in_debt:
-            # Scale node size based on absolute balance if possible, or just fixed size
             balance = balances.get(user, Decimal('0'))
             color = "#28a745" if balance > 0 else "#fd7e14"
             
@@ -187,19 +196,30 @@ with tab3:
             ))
 
         config = Config(
-            width=500,
-            height=500,
+            width=480,
+            height=400,
             directed=True,
             physics=True,
             hierarchical=False,
-            # **kwargs for more customization
+            fit=True
         )
 
         st.write("Arrows show who needs to pay who. Green is receiving, Orange is paying.")
-        agraph(nodes=nodes, edges=edges, config=config)
         
-        if st.checkbox("Show Table View"):
-            st.table(pd.DataFrame(simplified))
+        with st.container(border=True):
+            agraph_fixed(nodes=nodes, edges=edges, config=config, key=f"graph_{st.session_state.graph_reset_key}")
+
+with tab4:
+    st.subheader("Debt Details")
+    ledger = get_ledger()
+    balances = ledger.get_net_balances().get('USD', {})
+    simplified = DebtSimplifier.simplify({'USD': balances}).get('USD', [])
+    
+    if not simplified:
+        st.info("No active debts.")
+    else:
+        st.table(pd.DataFrame(simplified))
+
 
 # Footer
 st.divider()
