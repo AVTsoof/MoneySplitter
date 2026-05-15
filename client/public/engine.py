@@ -1,10 +1,24 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal, ROUND_HALF_UP
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
+
+class GroupSettings:
+    def __init__(self, default_currency: str = 'USD', active_currencies: Set[str] = None):
+        self.default_currency = default_currency
+        self.active_currencies = active_currencies or {default_currency}
+
+class UserPreferences:
+    def __init__(self, favorite_currencies: List[str] = None, base_currency: str = 'USD'):
+        self.favorite_currencies = favorite_currencies or ['USD']
+        self.base_currency = base_currency
 
 class SplitStrategy(ABC):
     @abstractmethod
     def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> Dict:
         pass
 
 class EqualSplitStrategy(SplitStrategy):
@@ -35,18 +49,86 @@ class EqualSplitStrategy(SplitStrategy):
                 
         return shares
 
+    def to_dict(self) -> Dict:
+        return {"type": "equal"}
+
+class PercentageSplitStrategy(SplitStrategy):
+    def __init__(self, percentages: Dict[str, Decimal]):
+        self.percentages = {k: Decimal(str(v)) for k, v in percentages.items()}
+
+    def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
+        if not participants:
+            return {}
+        
+        if sum(self.percentages.values()) != Decimal('100'):
+            raise ValueError("Percentages must sum to 100")
+        
+        shares = {}
+        for p in participants:
+            percentage = self.percentages.get(p, Decimal('0'))
+            shares[p] = (total_amount * percentage / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+        residue = total_amount - sum(shares.values())
+        if residue != 0:
+            pennies = int(residue * 100)
+            step = 1 if pennies > 0 else -1
+            for i in range(0, pennies, step):
+                # Distribute residue to participants who are part of the percentage map
+                p = participants[abs(i) % len(participants)]
+                shares[p] += Decimal('0.01') * step
+        return shares
+
+    def to_dict(self) -> Dict:
+        return {
+            "type": "percentage",
+            "percentages": {k: str(v) for k, v in self.percentages.items()}
+        }
+
+class ShareSplitStrategy(SplitStrategy):
+    def __init__(self, shares: Dict[str, Decimal]):
+        self.shares = {k: Decimal(str(v)) for k, v in shares.items()}
+
+    def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
+        if not participants:
+            return {}
+            
+        total_shares = sum(self.shares.values())
+        if total_shares == 0:
+            return {p: Decimal('0') for p in participants}
+            
+        res_shares = {}
+        for p in participants:
+            share_weight = self.shares.get(p, Decimal('0'))
+            res_shares[p] = (total_amount * share_weight / total_shares).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            
+        residue = total_amount - sum(res_shares.values())
+        if residue != 0:
+            pennies = int(residue * 100)
+            step = 1 if pennies > 0 else -1
+            for i in range(0, pennies, step):
+                p = participants[abs(i) % len(participants)]
+                res_shares[p] += Decimal('0.01') * step
+        return res_shares
+
+    def to_dict(self) -> Dict:
+        return {
+            "type": "share",
+            "shares": {k: str(v) for k, v in self.shares.items()}
+        }
+
 class Expense:
     """
     Represents an atomic unit of expense.
     Follows the Command pattern for immutability and event sourcing.
     """
-    def __init__(self, id: str, payer: str, total_amount: Decimal, participants: List[str], description: str, strategy: SplitStrategy = None):
+    def __init__(self, id: str, payer: str, total_amount: Decimal, participants: List[str], description: str, strategy: SplitStrategy = None, currency: str = None):
         self.id = id
         self.payer = payer
         self.total_amount = Decimal(str(total_amount))
         self.participants = participants
         self.description = description
         self.strategy = strategy or EqualSplitStrategy()
+        self.currency = currency # Will be set by Ledger if None
         
         # Calculate shares immediately
         self.shares = self.strategy.calculate_shares(self.total_amount, self.participants)
@@ -56,9 +138,11 @@ class Expense:
             "id": self.id,
             "payer": self.payer,
             "total_amount": str(self.total_amount),
+            "currency": self.currency,
             "participants": self.participants,
             "description": self.description,
-            "shares": {k: str(v) for k, v in self.shares.items()}
+            "shares": {k: str(v) for k, v in self.shares.items()},
+            "strategy": self.strategy.to_dict()
         }
 
 import heapq
@@ -67,20 +151,25 @@ class DebtSimplifier:
     """
     Minimizes the number of transactions required to settle balances.
     Uses a Greedy Match-Up Algorithm with Max-Heaps.
+    Supports multi-currency balances by simplifying each currency independently.
     """
     @staticmethod
-    def simplify(balances: Dict[str, Decimal]) -> List[Dict]:
+    def simplify(multi_balances: Dict[str, Dict[str, Decimal]]) -> Dict[str, List[Dict]]:
+        results = {}
+        for currency, balances in multi_balances.items():
+            results[currency] = DebtSimplifier._simplify_single_currency(balances)
+        return results
+
+    @staticmethod
+    def _simplify_single_currency(balances: Dict[str, Decimal]) -> List[Dict]:
         # Filter zero balances and separate into debtors and creditors
-        # Python's heapq is a min-heap, so we use negative values for max-heap behavior
         debtors = [] # (-abs_balance, user_id)
         creditors = [] # (-balance, user_id)
         
         for user, balance in balances.items():
-            if balance < Decimal('0'):
-                # balance is -10, so -balance is 10, -10 is stored
+            if balance < Decimal('-0.001'):
                 heapq.heappush(debtors, (-float(abs(balance)), user))
-            elif balance > Decimal('0'):
-                # balance is 10, -10 is stored
+            elif balance > Decimal('0.001'):
                 heapq.heappush(creditors, (-float(balance), user))
         
         transactions = []
@@ -92,7 +181,6 @@ class DebtSimplifier:
             debt_val = -neg_debt_val
             cred_val = -neg_cred_val
             
-            # Transaction amount is the minimum of the two
             amount = min(debt_val, cred_val)
             amount_dec = Decimal(str(round(amount, 2)))
             
@@ -103,11 +191,10 @@ class DebtSimplifier:
                     "amount": "{:.2f}".format(amount_dec)
                 })
             
-            # Update remaining balances
             remaining_debt = debt_val - amount
             remaining_cred = cred_val - amount
             
-            if remaining_debt > 0.001: # Use a small epsilon for float comparison
+            if remaining_debt > 0.001:
                 heapq.heappush(debtors, (-remaining_debt, debtor_id))
             if remaining_cred > 0.001:
                 heapq.heappush(creditors, (-remaining_cred, creditor_id))
@@ -117,16 +204,28 @@ class Ledger:
     """
     A collection of expenses.
     """
-    def __init__(self):
+    def __init__(self, settings: GroupSettings = None):
         self.expenses: List[Expense] = []
+        self.settings = settings or GroupSettings()
 
     def add_expense(self, expense: Expense):
+        if expense.currency is None:
+            expense.currency = self.settings.default_currency
         self.expenses.append(expense)
 
-    def get_net_balances(self) -> Dict[str, Decimal]:
-        balances = {}
+    def get_net_balances(self) -> Dict[str, Dict[str, Decimal]]:
+        """
+        Returns balances per currency: {currency: {user: balance}}
+        """
+        multi_balances = {}
         
         for expense in self.expenses:
+            currency = expense.currency
+            if currency not in multi_balances:
+                multi_balances[currency] = {}
+            
+            balances = multi_balances[currency]
+            
             # Payer is credited the total amount
             balances[expense.payer] = balances.get(expense.payer, Decimal('0')) + expense.total_amount
             
@@ -134,4 +233,28 @@ class Ledger:
             for user, share in expense.shares.items():
                 balances[user] = balances.get(user, Decimal('0')) - share
                 
-        return balances
+        return multi_balances
+
+    def get_unified_balances(self, base_currency: str, exchange_rates: Dict[str, Decimal]) -> Dict[str, Decimal]:
+        """
+        Translates all per-currency balances into a single base currency.
+        exchange_rates should be {from_currency: rate_to_base}
+        e.g., if base is USD and we have EUR, rate should be 1.1 (1 EUR = 1.1 USD)
+        """
+        multi_balances = self.get_net_balances()
+        unified = {}
+        
+        for currency, balances in multi_balances.items():
+            rate = Decimal('1')
+            if currency != base_currency:
+                rate = exchange_rates.get(currency)
+                if rate is None:
+                    # If rate is missing, we can't unify this currency accurately
+                    # For now, we'll skip or assume 1:1 with a warning (or just skip)
+                    continue
+            
+            for user, balance in balances.items():
+                converted_balance = (balance * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                unified[user] = unified.get(user, Decimal('0')) + converted_balance
+                
+        return unified
