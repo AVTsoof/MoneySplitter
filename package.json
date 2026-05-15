@@ -1,0 +1,11 @@
+{
+  "name": "moneysplitter",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
+  "scripts": {
+    "test:core": "cd core && python3 -m unittest discover",
+    "test:client": "npm run test -w client"
+  }
+}
