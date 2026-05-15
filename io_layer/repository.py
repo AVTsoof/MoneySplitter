@@ -98,7 +98,21 @@ class TransactionRepository(ABC):
             group_id: The unique identifier for the group.
             tx_id: The transaction ID of the event to remove.
 
+
         Returns:
             True if the event was found and removed, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def delete_group(self, group_id: str) -> bool:
+        """
+        Permanently deletes the group directory and all its data.
+
+        Args:
+            group_id: The unique identifier for the group to delete.
+
+        Returns:
+            True if the group existed and was deleted, False otherwise.
         """
         pass

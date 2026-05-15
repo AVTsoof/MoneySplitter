@@ -324,6 +324,23 @@ def confirm_save_dialog(idx, updated_tx):
             st.toast("⚠️ Could not find the original transaction to update.", icon="⚠️")
         st.rerun()
 
+@st.dialog("🗑️ Delete Group")
+def delete_group_dialog():
+    group_id = st.session_state.bridge.group_id
+    st.error(f"You are about to **permanently delete** the group **\"{group_id}\"** and all its data.")
+    st.warning("⚠️ This action **cannot be undone**. All transactions and settings will be lost forever.")
+    st.write("To confirm, type the group name below:")
+    confirm_input = st.text_input("Group name", placeholder=group_id, key="delete_group_confirm_input")
+    is_confirmed = confirm_input.strip() == group_id
+    if st.button("🗑️ Permanently Delete", type="primary", use_container_width=True, disabled=not is_confirmed):
+        st.session_state.repo.delete_group(group_id)
+        st.session_state.bridge.group_id = None  # Force back to group selection
+        del st.session_state.bridge
+        st.toast(f"Group \"{group_id}\" deleted.", icon="🗑️")
+        st.rerun()
+    if not is_confirmed and confirm_input:
+        st.caption("⚠️ The name does not match. Please type it exactly as shown.")
+
 @st.dialog("🔄 Updating Conversion Table")
 def update_rates_dialog():
     import time
@@ -678,6 +695,11 @@ with tab5:
             st.session_state.bridge.save_settings()
             st.success("Settings saved!")
             st.rerun()
+
+    with st.expander("🚨 Danger Zone"):
+        st.write("Permanently delete this group and all its data. This cannot be undone.")
+        if st.button("🗑️ Delete This Group", type="primary", use_container_width=True):
+            delete_group_dialog()
 
 
 # Footer

@@ -123,6 +123,15 @@ class LocalFileSystemIO(TransactionRepository):
                         f.writelines(new_lines)
         return deleted
 
+    def delete_group(self, group_id: str) -> bool:
+        """Permanently deletes the group directory and all its data."""
+        import shutil
+        group_dir = os.path.join(self.base_dir, group_id)
+        if os.path.exists(group_dir) and os.path.isdir(group_dir):
+            shutil.rmtree(group_dir)
+            return True
+        return False
+
     def load_example_group(self, group_id: str = "example_group", examples_dir: str = "examples/example_group"):
         """Copies the example group from the examples folder to .data/group_id."""
         import shutil
