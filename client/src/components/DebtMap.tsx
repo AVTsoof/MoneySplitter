@@ -1,104 +1,127 @@
-import React, { useMemo } from 'react';
-import ForceGraph2D from 'react-force-graph-2d';
-
-interface Transaction {
-  from: string;
-  to: string;
-  amount: string;
-}
+import React, { useEffect, useRef, useMemo } from 'react';
+import { Network } from 'vis-network';
+import { DataSet } from 'vis-data';
+import { Transaction } from '../types';
 
 interface DebtMapProps {
   transactions: Transaction[];
-  width?: number;
   height?: number;
 }
 
-const DebtMap: React.FC<DebtMapProps> = ({ transactions, width = 600, height = 400 }) => {
-  const data = useMemo(() => {
-    const nodesMap = new Map<string, { id: string; name: string }>();
-    const links: any[] = [];
+const DebtMap: React.FC<DebtMapProps> = ({ transactions, height = 300 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const networkRef = useRef<Network | null>(null);
+
+  const graphData = useMemo(() => {
+    const nodesMap = new Map<string, any>();
+    const edges: any[] = [];
 
     transactions.forEach((t) => {
-      if (!nodesMap.has(t.from)) nodesMap.set(t.from, { id: t.from, name: t.from });
-      if (!nodesMap.has(t.to)) nodesMap.set(t.to, { id: t.to, name: t.to });
+      const from = t.from === 'You' ? 'You' : t.from;
+      const to = t.to === 'You' ? 'You' : t.to;
 
-      links.push({
-        source: t.from,
-        target: t.to,
-        amount: t.amount,
+      if (!nodesMap.has(from)) nodesMap.set(from, { id: from, label: from });
+      if (!nodesMap.has(to)) nodesMap.set(to, { id: to, label: to });
+
+      edges.push({
+        from: from,
+        to: to,
         label: `$${t.amount}`,
+        width: Math.sqrt(parseFloat(t.amount)) / 2 + 1,
       });
     });
 
     return {
-      nodes: Array.from(nodesMap.values()),
-      links,
+      nodes: new DataSet<any>(Array.from(nodesMap.values())),
+      edges: new DataSet<any>(edges),
     };
   }, [transactions]);
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const options: any = {
+      nodes: {
+        shape: 'circle',
+        margin: 10,
+        font: {
+          size: 14,
+          face: 'Inter, system-ui, sans-serif',
+          weight: 'bold',
+          color: '#1e293b',
+        },
+        color: {
+          border: '#e2e8f0',
+          background: 'rgba(255, 255, 255, 0.9)',
+          highlight: {
+            border: '#2563eb',
+            background: '#eff6ff',
+          },
+        },
+        borderWidth: 1,
+      },
+      edges: {
+        arrows: {
+          to: { enabled: true, scaleFactor: 0.5 },
+        },
+        color: { color: '#d1d5db', highlight: '#2563eb' },
+        font: {
+          size: 11,
+          face: 'Sans-Serif',
+          weight: 'bold',
+          color: '#64748b',
+          align: 'horizontal',
+          background: 'rgba(255, 255, 255, 0.9)',
+          strokeWidth: 0,
+        },
+        smooth: {
+          enabled: true,
+          type: 'curvedCW',
+          roundness: 0.2,
+        },
+      },
+      physics: {
+        enabled: true,
+        stabilization: { iterations: 150 },
+        barnesHut: {
+          gravitationalConstant: -2000,
+          centralGravity: 0.3,
+          springLength: 150,
+        },
+      },
+      interaction: {
+        dragNodes: true,
+        zoomView: false,
+        dragView: true,
+      },
+    };
+
+    // Specific styling for "You" node
+    if (graphData.nodes.get('You')) {
+      graphData.nodes.update({
+        id: 'You',
+        font: { color: '#2563eb' },
+        color: { border: '#2563eb' },
+        borderWidth: 2,
+      });
+    }
+
+    networkRef.current = new Network(containerRef.current, graphData, options);
+
+    return () => {
+      if (networkRef.current) {
+        networkRef.current.destroy();
+        networkRef.current = null;
+      }
+    };
+  }, [graphData]);
+
   return (
-    <div className="bg-white rounded-lg shadow-inner overflow-hidden border border-gray-200">
-      <ForceGraph2D
-        graphData={data}
-        width={width}
-        height={height}
-        nodeLabel="id"
-        nodeColor={() => '#3b82f6'} // blue-500
-        nodeCanvasObject={(node: any, ctx, globalScale) => {
-          const label = node.id;
-          const fontSize = 12 / globalScale;
-          ctx.font = `${fontSize}px Sans-Serif`;
-          const textWidth = ctx.measureText(label).width;
-          const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
-
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, bckgDimensions[0], bckgDimensions[1]);
-
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#1e40af'; // blue-800
-          ctx.fillText(label, node.x, node.y);
-
-          node.__bckgDimensions = bckgDimensions; // to use in nodePointerAreaPaint
-        }}
-        linkDirectionalArrowLength={6}
-        linkDirectionalArrowRelPos={1}
-        linkCurvature={0.25}
-        linkLabel={(link: any) => `Amount: ${link.label}`}
-        linkCanvasObjectMode={() => 'after'}
-        linkCanvasObject={(link: any, ctx, globalScale) => {
-          const MAX_FONT_SIZE = 4;
-          const LABEL_NODE_MARGIN = 4;
-
-          const start = link.source;
-          const end = link.target;
-
-          // ignore unbound links
-          if (typeof start !== 'object' || typeof end !== 'object') return;
-
-          // calculate label positioning
-          const textPos = {
-            x: start.x + (end.x - start.x) / 2,
-            y: start.y + (end.y - start.y) / 2
-          };
-
-          const relAngle = Math.atan2(end.y - start.y, end.x - start.x);
-
-          const fontSize = Math.min(MAX_FONT_SIZE, (link.amount / 10) + 2);
-          ctx.font = `${fontSize}px Sans-Serif`;
-
-          ctx.save();
-          ctx.translate(textPos.x, textPos.y);
-          ctx.rotate(relAngle);
-
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#64748b'; // slate-500
-          ctx.fillText(link.label, 0, -2);
-          ctx.restore();
-        }}
-      />
-    </div>
+    <div 
+      ref={containerRef} 
+      style={{ width: '100%', height: `${height}px` }} 
+      className="vis-network-container"
+    />
   );
 };
 
