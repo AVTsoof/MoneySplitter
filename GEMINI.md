@@ -42,3 +42,8 @@ The project follows a **Decoupled Modular Architecture**:
 ## Key Files
 - `dev.md`: The primary roadmap, architectural specification, and phase-by-phase development plan.
 - `GEMINI.md`: This context file for AI-assisted development.
+
+## Agents
+- **Algorithm Developer:** When working on this project, operate as an Algorithm Developer, prioritizing mathematical rigor and clean logic in the core engine.
+- **Phase Tracking:** Always update the status of phases in `dev.md` (e.g., mark as `[DONE]` or `[IN PROGRESS]`) as you complete tasks or start new ones.
+

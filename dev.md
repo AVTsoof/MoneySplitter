@@ -6,7 +6,7 @@ This plan follows an incremental development cycle, prioritizing the mathematica
 
 ---
 
-### Phase 1: The Basic Transactional Ledger (MVP)
+### [DONE] Phase 1: The Basic Transactional Ledger (MVP)
 
 **Objective:** Create a functional person-to-person IOU system.
 
@@ -20,7 +20,7 @@ This plan follows an incremental development cycle, prioritizing the mathematica
 
 ---
 
-### Phase 2: Group Aggregation & Net Balances
+### [DONE] Phase 2: Group Aggregation & Net Balances
 
 **Objective:** Move from "who paid for what" to "what is the bottom line."
 
@@ -39,7 +39,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 ---
 
-### Phase 3: The Debt Simplification Engine
+### [DONE] Phase 3: The Debt Simplification Engine
 
 **Objective:** Minimize the number of transactions required to settle a group.
 
@@ -57,7 +57,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 ---
 
-### Phase 4: Advanced Splitting & Multi-Currency
+### [IN PROGRESS] Phase 4: Advanced Splitting & Multi-Currency
 
 **Objective:** Handle real-world complexity (unequal shares and Forex).
 
@@ -99,7 +99,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 ---
 
-### Phase 6: Decentralized Web Architecture & Drive Synchronization
+### [IN PROGRESS] Phase 6: Decentralized Web Architecture & Drive Synchronization
 
 **Objective:** Transition the application to a web-based, serverless architecture using Google Drive as the sole backend, with local CSV files functioning as the database.
 
@@ -152,7 +152,7 @@ To achieve transparent, behind-the-scenes synchronization between multiple users
 
 ---
 
-### Phase 7: Google OAuth 2.0 & Restricted Scopes
+### [IN PROGRESS] Phase 7: Google OAuth 2.0 & Restricted Scopes
 
 To enable login and file access, you will utilize **Google Identity Services (GIS)**. This allows you to treat the user’s Google Account as the unique identifier for the `events_user.csv` files.
 
@@ -179,7 +179,7 @@ Since this app is non-commercial and handles no payments, you can host it entire
 
 ---
 
-### Phase 9: Technical Stack (The "Algorithm Developer" Choice)
+### [IN PROGRESS] Phase 9: Technical Stack (The "Algorithm Developer" Choice)
 
 To leverage your **Python** knowledge while building a high-performance web app, you should use a **Hybrid WASM Architecture**.
 
