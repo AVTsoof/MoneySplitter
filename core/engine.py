@@ -7,6 +7,10 @@ class SplitStrategy(ABC):
     def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
         pass
 
+    @abstractmethod
+    def to_dict(self) -> Dict:
+        pass
+
 class EqualSplitStrategy(SplitStrategy):
     def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
         if not participants:
@@ -35,6 +39,73 @@ class EqualSplitStrategy(SplitStrategy):
                 
         return shares
 
+    def to_dict(self) -> Dict:
+        return {"type": "equal"}
+
+class PercentageSplitStrategy(SplitStrategy):
+    def __init__(self, percentages: Dict[str, Decimal]):
+        self.percentages = {k: Decimal(str(v)) for k, v in percentages.items()}
+
+    def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
+        if not participants:
+            return {}
+        
+        if sum(self.percentages.values()) != Decimal('100'):
+            raise ValueError("Percentages must sum to 100")
+        
+        shares = {}
+        for p in participants:
+            percentage = self.percentages.get(p, Decimal('0'))
+            shares[p] = (total_amount * percentage / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+        residue = total_amount - sum(shares.values())
+        if residue != 0:
+            pennies = int(residue * 100)
+            step = 1 if pennies > 0 else -1
+            for i in range(0, pennies, step):
+                # Distribute residue to participants who are part of the percentage map
+                p = participants[abs(i) % len(participants)]
+                shares[p] += Decimal('0.01') * step
+        return shares
+
+    def to_dict(self) -> Dict:
+        return {
+            "type": "percentage",
+            "percentages": {k: str(v) for k, v in self.percentages.items()}
+        }
+
+class ShareSplitStrategy(SplitStrategy):
+    def __init__(self, shares: Dict[str, Decimal]):
+        self.shares = {k: Decimal(str(v)) for k, v in shares.items()}
+
+    def calculate_shares(self, total_amount: Decimal, participants: List[str]) -> Dict[str, Decimal]:
+        if not participants:
+            return {}
+            
+        total_shares = sum(self.shares.values())
+        if total_shares == 0:
+            return {p: Decimal('0') for p in participants}
+            
+        res_shares = {}
+        for p in participants:
+            share_weight = self.shares.get(p, Decimal('0'))
+            res_shares[p] = (total_amount * share_weight / total_shares).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            
+        residue = total_amount - sum(res_shares.values())
+        if residue != 0:
+            pennies = int(residue * 100)
+            step = 1 if pennies > 0 else -1
+            for i in range(0, pennies, step):
+                p = participants[abs(i) % len(participants)]
+                res_shares[p] += Decimal('0.01') * step
+        return res_shares
+
+    def to_dict(self) -> Dict:
+        return {
+            "type": "share",
+            "shares": {k: str(v) for k, v in self.shares.items()}
+        }
+
 class Expense:
     """
     Represents an atomic unit of expense.
@@ -58,7 +129,8 @@ class Expense:
             "total_amount": str(self.total_amount),
             "participants": self.participants,
             "description": self.description,
-            "shares": {k: str(v) for k, v in self.shares.items()}
+            "shares": {k: str(v) for k, v in self.shares.items()},
+            "strategy": self.strategy.to_dict()
         }
 
 import heapq
