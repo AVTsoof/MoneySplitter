@@ -57,7 +57,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 ---
 
-### [IN PROGRESS] Phase 4: Advanced Splitting & Multi-Currency
+### [DONE] Phase 4: Advanced Splitting & Multi-Currency
 
 **Objective:** Handle real-world complexity (unequal shares and Forex).
 
