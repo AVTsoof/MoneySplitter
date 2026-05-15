@@ -118,29 +118,44 @@ class ShareSplitStrategy(SplitStrategy):
 
 from datetime import datetime
 
-class Expense:
+class Transaction(ABC):
+    """
+    Base class for all financial operations.
+    """
+    def __init__(self, id: str, amount: Decimal, currency: str, description: str, timestamp: datetime = None):
+        self.id = id
+        self.amount = Decimal(str(amount))
+        self.currency = currency
+        self.description = description
+        self.timestamp = timestamp or datetime.now()
+
+    @abstractmethod
+    def to_dict(self) -> Dict:
+        pass
+
+    @abstractmethod
+    def apply_to_balances(self, balances: Dict[str, Decimal]):
+        pass
+
+class Expense(Transaction):
     """
     Represents an atomic unit of expense.
-    Follows the Command pattern for immutability and event sourcing.
     """
     def __init__(self, id: str, payer: str, total_amount: Decimal, participants: List[str], description: str, strategy: SplitStrategy = None, currency: str = None, timestamp: datetime = None):
-        self.id = id
+        super().__init__(id, total_amount, currency, description, timestamp)
         self.payer = payer
-        self.total_amount = Decimal(str(total_amount))
         self.participants = participants
-        self.description = description
         self.strategy = strategy or EqualSplitStrategy()
-        self.currency = currency # Will be set by Ledger if None
-        self.timestamp = timestamp or datetime.now()
         
         # Calculate shares immediately
-        self.shares = self.strategy.calculate_shares(self.total_amount, self.participants)
+        self.shares = self.strategy.calculate_shares(self.amount, self.participants)
 
     def to_dict(self):
         return {
+            "type": "expense",
             "id": self.id,
             "payer": self.payer,
-            "total_amount": str(self.total_amount),
+            "total_amount": str(self.amount),
             "currency": self.currency,
             "participants": self.participants,
             "description": self.description,
@@ -148,6 +163,42 @@ class Expense:
             "strategy": self.strategy.to_dict(),
             "timestamp": self.timestamp.isoformat()
         }
+
+    def apply_to_balances(self, balances: Dict[str, Decimal]):
+        # Payer is credited the total amount
+        balances[self.payer] = balances.get(self.payer, Decimal('0')) + self.amount
+        
+        # Each participant is debited their share
+        for user, share in self.shares.items():
+            balances[user] = balances.get(user, Decimal('0')) - share
+
+class Transfer(Transaction):
+    """
+    Represents a direct transfer of money from one user to another.
+    """
+    def __init__(self, id: str, sender: str, receiver: str, amount: Decimal, currency: str, description: str = "Transfer", timestamp: datetime = None):
+        super().__init__(id, amount, currency, description, timestamp)
+        self.sender = sender
+        self.receiver = receiver
+
+    def to_dict(self):
+        return {
+            "type": "transfer",
+            "id": self.id,
+            "sender": self.sender,
+            "receiver": self.receiver,
+            "amount": str(self.amount),
+            "currency": self.currency,
+            "description": self.description,
+            "timestamp": self.timestamp.isoformat()
+        }
+
+    def apply_to_balances(self, balances: Dict[str, Decimal]):
+        # Sender is credited (they paid out, so they are "owed" this by the system/receiver)
+        # Actually, in this ledger system, 'balance > 0' means 'owed money'.
+        # If I send money to you, I am owed that money back by the system/you.
+        balances[self.sender] = balances.get(self.sender, Decimal('0')) + self.amount
+        balances[self.receiver] = balances.get(self.receiver, Decimal('0')) - self.amount
 
 import heapq
 
@@ -206,16 +257,16 @@ class DebtSimplifier:
         return transactions
 class Ledger:
     """
-    A collection of expenses.
+    A collection of transactions (expenses and transfers).
     """
     def __init__(self, settings: GroupSettings = None):
-        self.expenses: List[Expense] = []
+        self.transactions: List[Transaction] = []
         self.settings = settings or GroupSettings()
 
-    def add_expense(self, expense: Expense):
-        if expense.currency is None:
-            expense.currency = self.settings.default_currency
-        self.expenses.append(expense)
+    def add_transaction(self, transaction: Transaction):
+        if transaction.currency is None:
+            transaction.currency = self.settings.default_currency
+        self.transactions.append(transaction)
 
     def get_net_balances(self) -> Dict[str, Dict[str, Decimal]]:
         """
@@ -223,19 +274,13 @@ class Ledger:
         """
         multi_balances = {}
         
-        for expense in self.expenses:
-            currency = expense.currency
+        for tx in self.transactions:
+            currency = tx.currency
             if currency not in multi_balances:
                 multi_balances[currency] = {}
             
             balances = multi_balances[currency]
-            
-            # Payer is credited the total amount
-            balances[expense.payer] = balances.get(expense.payer, Decimal('0')) + expense.total_amount
-            
-            # Each participant is debited their share
-            for user, share in expense.shares.items():
-                balances[user] = balances.get(user, Decimal('0')) - share
+            tx.apply_to_balances(balances)
                 
         return multi_balances
 

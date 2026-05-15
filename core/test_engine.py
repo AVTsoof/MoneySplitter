@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from engine import EqualSplitStrategy, PercentageSplitStrategy, ShareSplitStrategy, Expense, Ledger
+from engine import EqualSplitStrategy, PercentageSplitStrategy, ShareSplitStrategy, Expense, Ledger, Transfer
 
 class TestMoneySplitter(unittest.TestCase):
     def test_equal_split_no_residue(self):
@@ -46,11 +46,20 @@ class TestMoneySplitter(unittest.TestCase):
 
     def test_expense_serialization(self):
         strategy = PercentageSplitStrategy({"A": 50, "B": 50})
-        expense = Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", strategy)
+        expense = Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", strategy, currency="USD")
         data = expense.to_dict()
+        self.assertEqual(data["type"], "expense")
         self.assertEqual(data["strategy"]["type"], "percentage")
         self.assertEqual(data["strategy"]["percentages"]["A"], "50")
         self.assertEqual(data["shares"]["A"], "5.00")
+
+    def test_transfer_serialization(self):
+        transfer = Transfer("2", "A", "B", Decimal("5.00"), "USD", "Payback")
+        data = transfer.to_dict()
+        self.assertEqual(data["type"], "transfer")
+        self.assertEqual(data["sender"], "A")
+        self.assertEqual(data["receiver"], "B")
+        self.assertEqual(data["amount"], "5.00")
 
     def test_equal_split_with_residue(self):
         strategy = EqualSplitStrategy()
@@ -63,7 +72,7 @@ class TestMoneySplitter(unittest.TestCase):
     def test_ledger_balances(self):
         ledger = Ledger()
         # A pays 10 for A, B, C (USD default)
-        ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza"))
+        ledger.add_transaction(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza"))
         
         multi_balances = ledger.get_net_balances()
         self.assertIn("USD", multi_balances)
@@ -77,12 +86,22 @@ class TestMoneySplitter(unittest.TestCase):
         self.assertTrue(balances["B"] < 0)
         self.assertTrue(balances["C"] < 0)
 
+    def test_transfer_balance(self):
+        ledger = Ledger()
+        # A sends 5 USD to B
+        ledger.add_transaction(Transfer("1", "A", "B", Decimal("5.00"), "USD"))
+        balances = ledger.get_net_balances()["USD"]
+        # A paid out, so A is "owed" 5.00 (positive balance)
+        # B received, so B "owes" 5.00 (negative balance)
+        self.assertEqual(balances["A"], Decimal("5.00"))
+        self.assertEqual(balances["B"], Decimal("-5.00"))
+
     def test_multi_currency_ledger(self):
         ledger = Ledger()
         # A pays 10 USD for A, B, C
-        ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza", currency="USD"))
+        ledger.add_transaction(Expense("1", "A", Decimal("10.00"), ["A", "B", "C"], "Pizza", currency="USD"))
         # B pays 15 EUR for B, C
-        ledger.add_expense(Expense("2", "B", Decimal("15.00"), ["B", "C"], "Drinks", currency="EUR"))
+        ledger.add_transaction(Expense("2", "B", Decimal("15.00"), ["B", "C"], "Drinks", currency="EUR"))
         
         multi_balances = ledger.get_net_balances()
         self.assertIn("USD", multi_balances)
@@ -100,8 +119,8 @@ class TestMoneySplitter(unittest.TestCase):
 
     def test_unified_balances(self):
         ledger = Ledger()
-        ledger.add_expense(Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", currency="USD"))
-        ledger.add_expense(Expense("2", "B", Decimal("10.00"), ["A", "B"], "Dinner", currency="EUR"))
+        ledger.add_transaction(Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", currency="USD"))
+        ledger.add_transaction(Expense("2", "B", Decimal("10.00"), ["A", "B"], "Dinner", currency="EUR"))
         
         # Rates relative to USD: 1 EUR = 1.1 USD
         rates = {"EUR": Decimal("1.1")}
