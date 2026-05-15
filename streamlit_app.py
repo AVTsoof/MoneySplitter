@@ -3,6 +3,8 @@ import pandas as pd
 from decimal import Decimal
 from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, Transaction, ExactSplitStrategy
 import uuid
+from io_layer.local_fs import LocalFileSystemIO
+from bridge.orchestrator import Bridge
 
 # Page configuration
 st.set_page_config(
@@ -88,13 +90,10 @@ def agraph_fixed(nodes, edges, config, key=None):
     data_json = json.dumps({"nodes": nodes_data, "edges": edges_data})
     return sa._agraph(data=data_json, config=config_json, key=key)
 
-if 'transactions' not in st.session_state:
-    st.session_state.transactions = [
-        Expense(id='1', payer='Ariel', total_amount=Decimal('30.00'), participants=['Ariel', 'Bob', 'Charlie'], description='Pizza', currency='USD', timestamp=datetime(2026, 5, 14, 19, 30)),
-        Expense(id='2', payer='Bob', total_amount=Decimal('15.00'), participants=['Bob', 'Charlie'], description='Drinks', currency='USD', timestamp=datetime(2026, 5, 14, 21, 0))
-    ]
 if 'users' not in st.session_state:
     st.session_state.users = ['You', 'Ariel', 'Bob', 'Charlie', 'David']
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = 'You'
 if 'graph_reset_key' not in st.session_state:
     st.session_state.graph_reset_key = 0
 if 'group_settings' not in st.session_state:
@@ -103,14 +102,17 @@ if 'group_settings' not in st.session_state:
         'active_currencies': ['USD', 'EUR', 'ILS']
     }
 
-def get_ledger():
-    ledger = Ledger(GroupSettings(
+# Initialize Bridge
+if 'bridge' not in st.session_state:
+    repo = LocalFileSystemIO()
+    settings = GroupSettings(
         default_currency=st.session_state.group_settings['default_currency'],
         active_currencies=set(st.session_state.group_settings['active_currencies'])
-    ))
-    for tx in st.session_state.transactions:
-        ledger.add_transaction(tx)
-    return ledger
+    )
+    st.session_state.bridge = Bridge(repo, current_user_id=st.session_state.current_user, group_id="default_group", settings=settings)
+
+def get_ledger():
+    return st.session_state.bridge.ledger
 
 @st.dialog("➕ Add a Bill")
 def add_bill_dialog():
@@ -166,7 +168,7 @@ def add_bill_dialog():
             strategy=strategy,
             timestamp=full_timestamp
         )
-        st.session_state.transactions.append(new_exp)
+        st.session_state.bridge.add_transaction(new_exp)
         st.rerun()
     
     if not is_valid:
@@ -210,7 +212,7 @@ def add_transfer_dialog():
             description=description,
             timestamp=full_timestamp
         )
-        st.session_state.transactions.append(new_transfer)
+        st.session_state.bridge.add_transaction(new_transfer)
         st.rerun()
     
     if sender == receiver:
@@ -265,7 +267,8 @@ def confirm_delete_dialog(idx, tx):
     render_transaction_summary(tx)
     st.write("This action cannot be undone.")
     if st.button("Yes, Delete", type="primary", use_container_width=True):
-        st.session_state.transactions.pop(idx)
+        st.session_state.bridge.delete_transaction(tx.id)
+        st.toast("Deletion is not yet supported in this append-only phase.")
         st.rerun()
 
 @st.dialog("💾 Confirm Save")
@@ -273,7 +276,8 @@ def confirm_save_dialog(idx, updated_tx):
     st.write("Save changes to this transaction?")
     render_transaction_summary(updated_tx)
     if st.button("Yes, Save Changes", type="primary", use_container_width=True):
-        st.session_state.transactions[idx] = updated_tx
+        st.session_state.bridge.update_transaction(updated_tx)
+        st.toast("Updating is not yet supported in this append-only phase.")
         st.rerun()
 
 def render_transaction_item(original_idx, tx):
@@ -388,6 +392,18 @@ def render_transaction_item(original_idx, tx):
         if c2.button("🗑️ Delete", use_container_width=True, key=f"del_{tx.id}"):
             confirm_delete_dialog(original_idx, tx)
 
+# --- Sidebar Setup ---
+with st.sidebar:
+    st.header("Mock Sync Tools")
+    new_user = st.selectbox("Current User (Simulate device):", st.session_state.users, index=st.session_state.users.index(st.session_state.current_user))
+    if new_user != st.session_state.current_user:
+        st.session_state.current_user = new_user
+        st.session_state.bridge.current_user_id = new_user
+        st.rerun()
+    if st.button("🔄 Refresh Data (Sync)", use_container_width=True):
+        st.session_state.bridge.refresh()
+        st.rerun()
+
 # --- UI Header ---
 st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
@@ -414,7 +430,7 @@ with tab1:
         st.caption("Order by")
         sort_order = st.radio("Sort Order", ["Newest", "Oldest"], horizontal=True, label_visibility="collapsed")
 
-    transactions_with_index = list(enumerate(st.session_state.transactions))
+    transactions_with_index = list(enumerate(st.session_state.bridge.get_transactions()))
     transactions_with_index.sort(key=lambda x: x[1].timestamp, reverse=(sort_order == "Newest"))
 
     if not transactions_with_index:
@@ -476,18 +492,19 @@ with tab2:
 with tab3:
     st.subheader("Debt Map")
     ledger = get_ledger()
-    multi_balances = ledger.get_net_balances()
     
     # Bug fix: Show all active currencies from settings
     active_currencies = st.session_state.group_settings['active_currencies']
     selected_curr = st.selectbox("Select Currency for Map", active_currencies)
     
-    balances = multi_balances.get(selected_curr, {})
-    simplified = DebtSimplifier.simplify({selected_curr: balances}).get(selected_curr, [])
+    exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in CURRENCY_SYMBOLS.keys()}
+    unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
+    
+    simplified = DebtSimplifier.simplify({selected_curr: unified_balances}).get(selected_curr, [])
     symbol = get_symbol(selected_curr)
     
     if not simplified:
-        st.info(f"No active debts in {selected_curr}.")
+        st.info(f"No active debts when converted to {selected_curr}.")
     else:
         if st.button("🔄 Reset View"):
             st.session_state.graph_reset_key += 1
