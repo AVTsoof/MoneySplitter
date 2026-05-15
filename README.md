@@ -35,3 +35,10 @@ Check **"The Bottom Line"** to see if you are owed money (Green) or owe money (O
 
 ---
 *Safe. Private. Simple.*
+
+## 💻 Running Locally
+
+To run the web interface on your machine:
+1. Navigate to the client directory: `cd client`
+2. Install dependencies: `npm install`
+3. Start the development server: `npm run dev`
