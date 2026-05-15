@@ -1,0 +1,15 @@
+{
+    "default_currency": "USD",
+    "active_currencies": [
+        "USD",
+        "EUR",
+        "ILS"
+    ],
+    "members": [
+        "Alice",
+        "Ariel",
+        "Bob",
+        "Charlie",
+        "David"
+    ]
+}

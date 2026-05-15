@@ -11,14 +11,26 @@ class Bridge:
     """
     Orchestrator connecting the UI to the Core Engine and Persistence Layer.
     """
-    def __init__(self, repository: TransactionRepository, current_user_id: str, group_id: str = "default_group", settings: GroupSettings = None):
+    def __init__(self, repository: TransactionRepository, current_user_id: str, group_id: str = None, settings: GroupSettings = None):
         self.repository = repository
         self.current_user_id = current_user_id
         self.group_id = group_id
-        self.settings = settings or GroupSettings(default_currency='USD', active_currencies={'USD', 'EUR', 'ILS'})
+        
+        if group_id:
+            # Try to load existing settings
+            existing_settings = self.repository.get_group_settings(group_id)
+            if existing_settings:
+                self.settings = GroupSettings.from_dict(existing_settings)
+            else:
+                self.settings = settings or GroupSettings()
+                self.save_settings()
+        else:
+            self.settings = settings or GroupSettings()
+            
         self.ledger = Ledger(self.settings)
         self.update_exchange_rates(force=False)
-        self.refresh()
+        if group_id:
+            self.refresh()
 
     def update_exchange_rates(self, force: bool = False, timeout: float = 5.0) -> bool:
         """
@@ -58,6 +70,24 @@ class Bridge:
     def get_exchange_rates(self) -> dict:
         return self.repository.get_exchange_rates()
 
+    def save_settings(self):
+        """Saves the current group settings to the repository."""
+        if self.group_id:
+            self.repository.save_group_settings(self.group_id, self.settings.to_dict())
+
+    def switch_group(self, new_group_id: str):
+        """Switches the active group and reloads data."""
+        self.group_id = new_group_id
+        existing_settings = self.repository.get_group_settings(new_group_id)
+        if existing_settings:
+            self.settings = GroupSettings.from_dict(existing_settings)
+        else:
+            self.settings = GroupSettings()
+            self.save_settings()
+        
+        self.ledger = Ledger(self.settings)
+        self.refresh()
+
     def refresh(self):
         """Fetches all events from the repository, sorts them, and reconstructs the Ledger."""
         raw_events = self.repository.fetch_events(self.group_id)
@@ -87,17 +117,39 @@ class Bridge:
 
     def delete_transaction(self, tx_id: str):
         """
-        Since this is an append-only ledger, a true delete isn't fully implemented 
-        in a simple file-append model without a deletion-event pattern (tombstone).
-        For this prototype phase, if deletion is requested we rewrite the whole state.
-        In a robust event-sourcing model, we would append a 'delete' action row.
-        For simplicity, we will ignore deletes or mock them out in the short term.
+        Removes a transaction from the persistent store by rewriting the affected CSV file(s)
+        without the matching row, then refreshes the in-memory ledger.
         """
-        pass # Placeholder for Event Sourcing Tombstone action.
+        self.repository.delete_event(self.group_id, tx_id)
+        self.refresh()
 
     def update_transaction(self, tx: Transaction):
-        """Placeholder for Event Sourcing Update action."""
-        pass
+        """
+        Replaces an existing transaction in the persistent store.
+        Tries the current user's file first; if not found, falls back to scanning
+        all user files in the group. Refreshes the in-memory ledger afterwards.
+        """
+        new_csv_row = CSVAdapter.transaction_to_csv_row(tx)
+
+        # Try updating in the current user's file first
+        updated = self.repository.update_event(
+            self.group_id, self.current_user_id, tx.id, new_csv_row
+        )
+
+        # If not found there, scan all other user files in the group
+        if not updated:
+            existing_settings = self.repository.get_group_settings(self.group_id)
+            members = existing_settings.get("members", []) if existing_settings else []
+            for member in members:
+                if member != self.current_user_id:
+                    updated = self.repository.update_event(
+                        self.group_id, member, tx.id, new_csv_row
+                    )
+                    if updated:
+                        break
+
+        self.refresh()
+        return updated
 
     def get_transactions(self) -> List[Transaction]:
         return self.ledger.transactions

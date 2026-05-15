@@ -51,3 +51,54 @@ class TransactionRepository(ABC):
             Dictionary containing exchange rate data and metadata, or empty dict if not found.
         """
         pass
+
+    @abstractmethod
+    def save_group_settings(self, group_id: str, settings: dict) -> None:
+        """
+        Saves the settings for a specific group.
+        """
+        pass
+
+    @abstractmethod
+    def get_group_settings(self, group_id: str) -> dict:
+        """
+        Retrieves the settings for a specific group.
+        """
+        pass
+
+    @abstractmethod
+    def list_groups(self) -> List[str]:
+        """
+        Returns a list of all group IDs available in storage.
+        """
+        pass
+
+    @abstractmethod
+    def update_event(self, group_id: str, user_id: str, tx_id: str, new_csv_row: str) -> bool:
+        """
+        Replaces an existing event row (matched by tx_id) in the user's CSV file.
+
+        Args:
+            group_id: The unique identifier for the group.
+            user_id: The ID of the user who owns the event.
+            tx_id: The transaction ID of the event to replace.
+            new_csv_row: The new formatted CSV string.
+
+        Returns:
+            True if the event was found and replaced, False otherwise.
+        """
+        pass
+
+    @abstractmethod
+    def delete_event(self, group_id: str, tx_id: str) -> bool:
+        """
+        Removes an event row (matched by tx_id) from all user CSV files in the group.
+
+        Args:
+            group_id: The unique identifier for the group.
+            tx_id: The transaction ID of the event to remove.
+
+        Returns:
+            True if the event was found and removed, False otherwise.
+        """
+        pass

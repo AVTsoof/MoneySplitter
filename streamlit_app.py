@@ -74,11 +74,11 @@ def get_symbol(currency_code):
     return CURRENCY_SYMBOLS.get(currency_code, f"{currency_code} ")
 
 def render_currency_selector(label, key):
-    active_currencies = st.session_state.group_settings['active_currencies']
+    active_currencies = list(st.session_state.bridge.settings.active_currencies)
     return st.selectbox(
         label, 
         active_currencies, 
-        index=active_currencies.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active_currencies else 0,
+        index=active_currencies.index(st.session_state.bridge.settings.default_currency) if st.session_state.bridge.settings.default_currency in active_currencies else 0,
         key=key
     )
 
@@ -89,26 +89,68 @@ def agraph_fixed(nodes, edges, config, key=None):
     data_json = json.dumps({"nodes": nodes_data, "edges": edges_data})
     return sa._agraph(data=data_json, config=config_json, key=key)
 
-if 'users' not in st.session_state:
-    st.session_state.users = ['You', 'Ariel', 'Bob', 'Charlie', 'David']
-if 'current_user' not in st.session_state:
-    st.session_state.current_user = 'You'
 if 'graph_reset_key' not in st.session_state:
     st.session_state.graph_reset_key = 0
-if 'group_settings' not in st.session_state:
-    st.session_state.group_settings = {
-        'default_currency': 'USD',
-        'active_currencies': ['USD', 'EUR', 'ILS']
-    }
+if 'repo' not in st.session_state:
+    st.session_state.repo = LocalFileSystemIO()
 
-# Initialize Bridge
-if 'bridge' not in st.session_state:
-    repo = LocalFileSystemIO()
-    settings = GroupSettings(
-        default_currency=st.session_state.group_settings['default_currency'],
-        active_currencies=set(st.session_state.group_settings['active_currencies'])
-    )
-    st.session_state.bridge = Bridge(repo, current_user_id=st.session_state.current_user, group_id="default_group", settings=settings)
+@st.dialog("Create New Group")
+def create_group_dialog():
+    st.write("Enter details for your new group:")
+    group_name = st.text_input("Group Name (Folder Name)")
+    member_names = st.text_input("Members (comma separated)", placeholder="Alice, Bob, Charlie")
+    default_currency = st.selectbox("Default Currency", list(CURRENCY_SYMBOLS.keys()), index=0)
+    
+    if st.button("Create", type="primary"):
+        if group_name and member_names:
+            members_list = [m.strip() for m in member_names.split(",") if m.strip()]
+            settings = GroupSettings(default_currency=default_currency, active_currencies={default_currency}, members=members_list)
+            st.session_state.repo.save_group_settings(group_name, settings.to_dict())
+            
+            st.session_state.bridge = Bridge(st.session_state.repo, current_user_id=members_list[0], group_id=group_name)
+            st.session_state.current_user = members_list[0]
+            st.rerun()
+        else:
+            st.error("Please provide a valid group name and at least one member.")
+
+if 'bridge' not in st.session_state or getattr(st.session_state.bridge, 'group_id', None) is None:
+    st.title("Welcome to MoneySplitter 💸")
+    st.write("Please select or create a group to continue.")
+    
+    available_groups = st.session_state.repo.list_groups()
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.subheader("Open Group")
+        if available_groups:
+            selected_group = st.selectbox("Select existing group", available_groups)
+            if st.button("Open", type="primary"):
+                temp_settings = st.session_state.repo.get_group_settings(selected_group)
+                members = temp_settings.get("members", [])
+                current_user = members[0] if members else "Unknown"
+                st.session_state.bridge = Bridge(st.session_state.repo, current_user_id=current_user, group_id=selected_group)
+                st.session_state.current_user = current_user
+                st.rerun()
+        else:
+            st.info("No groups found.")
+            
+    with col2:
+        st.subheader("New Group")
+        if st.button("➕ Create New Group"):
+            create_group_dialog()
+            
+    with col3:
+        st.subheader("Examples")
+        if st.button("📖 Load Example Group"):
+            st.session_state.repo.load_example_group()
+            st.toast("Example group loaded! You can now select it on the left.")
+            st.rerun()
+            
+    st.stop()  # Stop rendering the rest of the app until a group is selected
+
+if 'current_user' not in st.session_state:
+    st.session_state.current_user = st.session_state.bridge.current_user_id
 
 def get_ledger():
     return st.session_state.bridge.ledger
@@ -119,12 +161,12 @@ def add_bill_dialog():
     with col1:
         description = st.text_input("What was it for? :red[*]", placeholder="e.g. Pizza")
     with col2:
-        currency = st.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                              index=st.session_state.group_settings['active_currencies'].index(st.session_state.group_settings['default_currency']))
+        currency = st.selectbox("Currency", list(st.session_state.bridge.settings.active_currencies), 
+                              index=list(st.session_state.bridge.settings.active_currencies).index(st.session_state.bridge.settings.default_currency))
     
     amount = st.number_input("How much? :red[*]", min_value=0.0, value=0.0, step=1.0, format="%.2f")
-    payer = st.selectbox("Who paid?", st.session_state.users)
-    participants = st.multiselect("Who was there? :red[*]", st.session_state.users, default=st.session_state.users)
+    payer = st.selectbox("Who paid?", st.session_state.bridge.settings.members)
+    participants = st.multiselect("Who was there? :red[*]", st.session_state.bridge.settings.members, default=st.session_state.bridge.settings.members)
     
     split_method = st.radio("Split Method", ["Equally", "Unequally"], horizontal=True)
     
@@ -182,15 +224,15 @@ def add_transfer_dialog():
     with col1:
         description = st.text_input("Description", value="Transfer", placeholder="e.g. Payback")
     with col2:
-        currency = st.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                              index=st.session_state.group_settings['active_currencies'].index(st.session_state.group_settings['default_currency']))
+        currency = st.selectbox("Currency", list(st.session_state.bridge.settings.active_currencies), 
+                              index=list(st.session_state.bridge.settings.active_currencies).index(st.session_state.bridge.settings.default_currency))
     
     amount = st.number_input("How much?", min_value=0.0, value=0.0, step=1.0, format="%.2f")
     col_f, col_t_user = st.columns(2)
     with col_f:
-        sender = st.selectbox("From", st.session_state.users)
+        sender = st.selectbox("From", st.session_state.bridge.settings.members)
     with col_t_user:
-        receiver = st.selectbox("To", st.session_state.users, index=1 if len(st.session_state.users) > 1 else 0)
+        receiver = st.selectbox("To", st.session_state.bridge.settings.members, index=1 if len(st.session_state.bridge.settings.members) > 1 else 0)
     
     col_d, col_t = st.columns(2)
     with col_d:
@@ -221,7 +263,7 @@ def add_transfer_dialog():
 
 def render_transaction_summary(tx):
     symbol = get_symbol(tx.currency)
-    default_curr = st.session_state.group_settings['default_currency']
+    default_curr = st.session_state.bridge.settings.default_currency
     amount_display = f"{symbol}{tx.amount:.2f}"
     
     if tx.currency != default_curr:
@@ -267,7 +309,7 @@ def confirm_delete_dialog(idx, tx):
     st.write("This action cannot be undone.")
     if st.button("Yes, Delete", type="primary", use_container_width=True):
         st.session_state.bridge.delete_transaction(tx.id)
-        st.toast("Deletion is not yet supported in this append-only phase.")
+        st.toast("Transaction deleted.")
         st.rerun()
 
 @st.dialog("💾 Confirm Save")
@@ -275,8 +317,11 @@ def confirm_save_dialog(idx, updated_tx):
     st.write("Save changes to this transaction?")
     render_transaction_summary(updated_tx)
     if st.button("Yes, Save Changes", type="primary", use_container_width=True):
-        st.session_state.bridge.update_transaction(updated_tx)
-        st.toast("Updating is not yet supported in this append-only phase.")
+        updated = st.session_state.bridge.update_transaction(updated_tx)
+        if updated:
+            st.toast("Changes saved!")
+        else:
+            st.toast("⚠️ Could not find the original transaction to update.", icon="⚠️")
         st.rerun()
 
 @st.dialog("🔄 Updating Conversion Table")
@@ -299,7 +344,7 @@ def update_rates_dialog():
 
 def render_transaction_item(original_idx, tx):
     symbol = get_symbol(tx.currency)
-    default_curr = st.session_state.group_settings['default_currency']
+    default_curr = st.session_state.bridge.settings.default_currency
     
     amount_display = f"{symbol}{tx.amount:.2f}"
     if tx.currency != default_curr:
@@ -327,13 +372,13 @@ def render_transaction_item(original_idx, tx):
         if isinstance(tx, Expense):
             col1, col2 = st.columns([3, 1])
             new_desc = col1.text_input("Description", value=tx.description, key=f"desc_{tx.id}")
-            new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                                    index=st.session_state.group_settings['active_currencies'].index(tx.currency),
+            new_curr = col2.selectbox("Currency", list(st.session_state.bridge.settings.active_currencies), 
+                                    index=list(st.session_state.bridge.settings.active_currencies).index(tx.currency),
                                     key=f"curr_{tx.id}")
             
             new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
-            new_payer = st.selectbox("Who paid?", st.session_state.users, index=st.session_state.users.index(tx.payer) if tx.payer in st.session_state.users else 0, key=f"payer_{tx.id}")
-            new_participants = st.multiselect("Who was there?", st.session_state.users, default=tx.participants, key=f"part_{tx.id}")
+            new_payer = st.selectbox("Who paid?", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(tx.payer) if tx.payer in st.session_state.bridge.settings.members else 0, key=f"payer_{tx.id}")
+            new_participants = st.multiselect("Who was there?", st.session_state.bridge.settings.members, default=tx.participants, key=f"part_{tx.id}")
             
             current_split_method = "Equally" if isinstance(tx.strategy, EqualSplitStrategy) else "Unequally"
             new_split_method = st.radio("Split Method", ["Equally", "Unequally"], 
@@ -355,14 +400,14 @@ def render_transaction_item(original_idx, tx):
         else:
             col1, col2 = st.columns([3, 1])
             new_desc = col1.text_input("Description", value=tx.description, key=f"desc_{tx.id}")
-            new_curr = col2.selectbox("Currency", st.session_state.group_settings['active_currencies'], 
-                                    index=st.session_state.group_settings['active_currencies'].index(tx.currency),
+            new_curr = col2.selectbox("Currency", list(st.session_state.bridge.settings.active_currencies), 
+                                    index=list(st.session_state.bridge.settings.active_currencies).index(tx.currency),
                                     key=f"curr_{tx.id}")
             
             new_amount = st.number_input("Amount", min_value=0.0, value=float(tx.amount), step=1.0, format="%.2f", key=f"amt_{tx.id}")
             col_f, col_t_user = st.columns(2)
-            new_sender = col_f.selectbox("From", st.session_state.users, index=st.session_state.users.index(tx.sender) if tx.sender in st.session_state.users else 0, key=f"sender_{tx.id}")
-            new_receiver = col_t_user.selectbox("To", st.session_state.users, index=st.session_state.users.index(tx.receiver) if tx.receiver in st.session_state.users else 0, key=f"receiver_{tx.id}")
+            new_sender = col_f.selectbox("From", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(tx.sender) if tx.sender in st.session_state.bridge.settings.members else 0, key=f"sender_{tx.id}")
+            new_receiver = col_t_user.selectbox("To", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(tx.receiver) if tx.receiver in st.session_state.bridge.settings.members else 0, key=f"receiver_{tx.id}")
 
         col_d, col_t = st.columns(2)
         new_date = col_d.date_input("Date", value=tx.timestamp.date(), key=f"date_{tx.id}")
@@ -412,7 +457,12 @@ def render_transaction_item(original_idx, tx):
 # --- Sidebar Setup ---
 with st.sidebar:
     st.header("Mock Sync Tools")
-    new_user = st.selectbox("Current User (Simulate device):", st.session_state.users, index=st.session_state.users.index(st.session_state.current_user))
+    if getattr(st.session_state.bridge, 'group_id', None) is not None:
+        if st.button("🚪 Switch Group", use_container_width=True):
+            st.session_state.bridge.group_id = None
+            st.rerun()
+            
+    new_user = st.selectbox("Current User (Simulate device):", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(st.session_state.current_user) if st.session_state.current_user in st.session_state.bridge.settings.members else 0)
     if new_user != st.session_state.current_user:
         st.session_state.current_user = new_user
         st.session_state.bridge.current_user_id = new_user
@@ -483,7 +533,7 @@ with tab2:
     else:
         st.write(f"### Balances in {selected_curr}")
         symbol = get_symbol(selected_curr)
-        for user in st.session_state.users:
+        for user in st.session_state.bridge.settings.members:
             balance = unified_balances.get(user, Decimal('0'))
             if balance > Decimal('0.001'):
                 st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
@@ -576,7 +626,7 @@ with tab4:
         
     if rates:
         base_curr = render_currency_selector("Select Base Currency", key="rates_curr")
-        active_currencies = st.session_state.group_settings['active_currencies']
+        active_currencies = list(st.session_state.bridge.settings.active_currencies)
         
         display_data = []
         for curr in active_currencies:
@@ -607,23 +657,25 @@ with tab5:
     with st.expander("👥 Members", expanded=True):
         new_user = st.text_input("Add new member")
         if st.button("Add Member"):
-            if new_user and new_user not in st.session_state.users:
-                st.session_state.users.append(new_user)
+            if new_user and new_user not in st.session_state.bridge.settings.members:
+                st.session_state.bridge.settings.members.append(new_user)
+                st.session_state.bridge.save_settings()
                 st.success(f"Added {new_user}")
                 st.rerun()
         
-        st.write("Current members:", ", ".join(st.session_state.users))
+        st.write("Current members:", ", ".join(st.session_state.bridge.settings.members))
 
     with st.expander("💱 Currencies", expanded=True):
         all_options = list(CURRENCY_SYMBOLS.keys())
-        active = st.multiselect("Active Currencies", all_options, default=st.session_state.group_settings['active_currencies'])
+        active = st.multiselect("Active Currencies", all_options, default=list(st.session_state.bridge.settings.active_currencies))
         
         default = st.selectbox("Default Currency", active, 
-                               index=active.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active else 0)
+                               index=active.index(st.session_state.bridge.settings.default_currency) if st.session_state.bridge.settings.default_currency in active else 0)
         
         if st.button("Save Currency Settings"):
-            st.session_state.group_settings['active_currencies'] = active
-            st.session_state.group_settings['default_currency'] = default
+            st.session_state.bridge.settings.active_currencies = set(active)
+            st.session_state.bridge.settings.default_currency = default
+            st.session_state.bridge.save_settings()
             st.success("Settings saved!")
             st.rerun()
 
