@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from engine import EqualSplitStrategy, Expense, Ledger
+from engine import EqualSplitStrategy, PercentageSplitStrategy, ShareSplitStrategy, Expense, Ledger
 
 class TestMoneySplitter(unittest.TestCase):
     def test_equal_split_no_residue(self):
@@ -10,6 +10,47 @@ class TestMoneySplitter(unittest.TestCase):
         self.assertEqual(shares['B'], Decimal('10.00'))
         self.assertEqual(shares['C'], Decimal('10.00'))
         self.assertEqual(sum(shares.values()), Decimal('30.00'))
+
+    def test_percentage_split(self):
+        # 60/40 split of 10.00
+        strategy = PercentageSplitStrategy({"A": Decimal("60"), "B": Decimal("40")})
+        shares = strategy.calculate_shares(Decimal("10.00"), ["A", "B"])
+        self.assertEqual(shares["A"], Decimal("6.00"))
+        self.assertEqual(shares["B"], Decimal("4.00"))
+
+    def test_percentage_split_with_residue(self):
+        # 10.00 split 33.33%, 33.33%, 33.34%
+        # Actually let's try 1/3, 1/3, 1/3 which is 33.33 each, residue 0.01
+        strategy = PercentageSplitStrategy({"A": Decimal("33.33"), "B": Decimal("33.33"), "C": Decimal("33.34")})
+        shares = strategy.calculate_shares(Decimal("10.00"), ["A", "B", "C"])
+        self.assertEqual(sum(shares.values()), Decimal("10.00"))
+
+    def test_percentage_invalid_sum(self):
+        strategy = PercentageSplitStrategy({"A": Decimal("50"), "B": Decimal("40")})
+        with self.assertRaises(ValueError):
+            strategy.calculate_shares(Decimal("10.00"), ["A", "B"])
+
+    def test_share_split(self):
+        # 2:1 split of 30.00
+        strategy = ShareSplitStrategy({"A": Decimal("2"), "B": Decimal("1")})
+        shares = strategy.calculate_shares(Decimal("30.00"), ["A", "B"])
+        self.assertEqual(shares["A"], Decimal("20.00"))
+        self.assertEqual(shares["B"], Decimal("10.00"))
+
+    def test_share_split_with_residue(self):
+        # 1:1:1 split of 10.00
+        strategy = ShareSplitStrategy({"A": 1, "B": 1, "C": 1})
+        shares = strategy.calculate_shares(Decimal("10.00"), ["A", "B", "C"])
+        self.assertEqual(sum(shares.values()), Decimal("10.00"))
+        self.assertEqual(len(set(shares.values())), 2) # Two 3.33 and one 3.34
+
+    def test_expense_serialization(self):
+        strategy = PercentageSplitStrategy({"A": 50, "B": 50})
+        expense = Expense("1", "A", Decimal("10.00"), ["A", "B"], "Lunch", strategy)
+        data = expense.to_dict()
+        self.assertEqual(data["strategy"]["type"], "percentage")
+        self.assertEqual(data["strategy"]["percentages"]["A"], "50")
+        self.assertEqual(data["shares"]["A"], "5.00")
 
     def test_equal_split_with_residue(self):
         strategy = EqualSplitStrategy()
