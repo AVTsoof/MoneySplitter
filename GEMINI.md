@@ -5,6 +5,9 @@ This file provides instructional context for Gemini CLI interactions within the 
 ## Project Overview
 **MoneySplitter** is a decentralized, serverless, and local-first debt-splitting application. It eliminates the need for a central database by using Google Drive as a persistence layer, where each user maintains an append-only CSV ledger. The application calculates net balances and optimizes debt settlements locally in the browser using a Python-based engine.
 
+## Operational Protocol
+- **Reactive Mode:** Wait for an explicit user directive before initiating any tasks, research, or phase updates. Do not perform proactive background work or "auto-start" any workflows upon session initialization unless specifically requested.
+
 ### Key Features
 - **Decentralized Sync:** Google Drive-based event sourcing using per-user CSV files.
 - **Smart Settle:** A greedy algorithm to minimize the number of transactions ($n-1$ for $n$ users).
