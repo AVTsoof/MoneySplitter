@@ -684,7 +684,7 @@ with tab4:
 with tab5:
     st.subheader("⚙️ Group Settings")
     
-    with st.expander("👥 Members", expanded=True):
+    with st.expander("👥 Members", expanded=False):
         new_user = st.text_input("Add new member")
         if st.button("Add Member"):
             if new_user and new_user not in st.session_state.bridge.settings.members:
@@ -695,7 +695,7 @@ with tab5:
         
         st.write("Current members:", ", ".join(st.session_state.bridge.settings.members))
 
-    with st.expander("💱 Currencies", expanded=True):
+    with st.expander("💱 Currencies", expanded=False):
         all_options = list(CURRENCY_SYMBOLS.keys())
         active = st.multiselect("Active Currencies", all_options, default=list(st.session_state.bridge.settings.active_currencies))
         
