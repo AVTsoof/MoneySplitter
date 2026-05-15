@@ -5,10 +5,10 @@ import BillsTab from './components/BillsTab';
 import BalancesTab from './components/BalancesTab';
 import AddBillScreen from './components/AddBillScreen';
 import MapTab from './components/MapTab';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Receipt, Wallet, Map as MapIcon } from "lucide-react";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'bills' | 'balances' | 'map'>('bills');
-  const [showAddBill, setShowAddBill] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([
     { id: '1', payer: 'Ariel', total_amount: '30.00', participants: ['Ariel', 'Bob', 'Charlie'], description: 'Pizza', currency: 'USD' },
     { id: '2', payer: 'Bob', total_amount: '15.00', participants: ['Bob', 'Charlie'], description: 'Drinks', currency: 'EUR' }
@@ -17,6 +17,7 @@ function App() {
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAddBill, setShowAddBill] = useState(false);
 
   // Available users for the group (mocked for now)
   const availableUsers = ['You', 'Ariel', 'Bob', 'Charlie', 'David'];
@@ -59,54 +60,46 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col max-w-lg mx-auto shadow-xl h-screen overflow-hidden">
+    <div className="min-h-screen bg-muted/30 flex flex-col max-w-lg mx-auto shadow-2xl h-screen overflow-hidden border-x bg-background">
       {/* Header */}
-      <header className="bg-white px-6 pt-10 pb-4 border-b border-gray-100 shrink-0">
-        <h1 className="text-2xl font-black text-blue-600 tracking-tight">MoneySplitter</h1>
+      <header className="px-6 pt-10 pb-4 shrink-0 bg-background">
+        <h1 className="text-2xl font-black text-primary tracking-tight">MoneySplitter</h1>
       </header>
 
-      {/* Tabs Navigation */}
-      <nav className="bg-white flex px-6 border-b border-gray-100 shrink-0">
-        <button
-          onClick={() => setActiveTab('bills')}
-          className={`flex-1 py-4 text-[10px] font-black transition-all border-b-2 ${
-            activeTab === 'bills' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'
-          }`}
-        >
-          BILLS
-        </button>
-        <button
-          onClick={() => setActiveTab('balances')}
-          className={`flex-1 py-4 text-[10px] font-black transition-all border-b-2 ${
-            activeTab === 'balances' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'
-          }`}
-        >
-          THE BOTTOM LINE
-        </button>
-        <button
-          onClick={() => setActiveTab('map')}
-          className={`flex-1 py-4 text-[10px] font-black transition-all border-b-2 ${
-            activeTab === 'map' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'
-          }`}
-        >
-          THE MAP
-        </button>
-      </nav>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden relative">
-        <div className="h-full w-full p-6 flex flex-col">
-          {activeTab === 'bills' && (
-            <BillsTab expenses={expenses} onAddClick={() => setShowAddBill(true)} />
-          )}
-          {activeTab === 'balances' && (
-            <BalancesTab results={results} loading={loading} error={error} />
-          )}
-          {activeTab === 'map' && (
-            <MapTab results={results} loading={loading} error={error} />
-          )}
+      <Tabs defaultValue="bills" className="flex-1 flex flex-col overflow-hidden">
+        {/* Tabs Navigation */}
+        <div className="px-6 bg-background">
+          <TabsList className="w-full grid grid-cols-3 h-12 bg-muted/50 p-1">
+            <TabsTrigger value="bills" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Receipt className="w-4 h-4 mr-2 hidden sm:block" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Bills</span>
+            </TabsTrigger>
+            <TabsTrigger value="balances" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Wallet className="w-4 h-4 mr-2 hidden sm:block" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Bottom Line</span>
+            </TabsTrigger>
+            <TabsTrigger value="map" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <MapIcon className="w-4 h-4 mr-2 hidden sm:block" />
+              <span className="text-[10px] font-black uppercase tracking-tighter">Map</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </main>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-hidden relative">
+          <TabsContent value="bills" className="h-full m-0 p-6 focus-visible:outline-none">
+            <BillsTab expenses={expenses} onAddClick={() => setShowAddBill(true)} />
+          </TabsContent>
+          
+          <TabsContent value="balances" className="h-full m-0 p-6 overflow-y-auto focus-visible:outline-none">
+            <BalancesTab results={results} loading={loading} error={error} />
+          </TabsContent>
+          
+          <TabsContent value="map" className="h-full m-0 p-6 focus-visible:outline-none">
+            <MapTab results={results} loading={loading} error={error} />
+          </TabsContent>
+        </main>
+      </Tabs>
     </div>
   );
 }

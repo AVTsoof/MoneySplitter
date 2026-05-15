@@ -1,4 +1,8 @@
 import { Expense } from '../types';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Plus, ReceiptText } from "lucide-react";
 
 interface BillsTabProps {
   expenses: Expense[];
@@ -8,41 +12,52 @@ interface BillsTabProps {
 export default function BillsTab({ expenses, onAddClick }: BillsTabProps) {
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex-1 overflow-y-auto space-y-4 pb-24">
+      <div className="flex-1 overflow-y-auto space-y-4 pb-24 px-1">
         {expenses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <p className="text-lg">No bills yet.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground text-center">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+              <ReceiptText className="w-8 h-8 opacity-20" />
+            </div>
+            <p className="text-lg font-medium">No bills yet.</p>
             <p className="text-sm">Tap the + to add your first expense.</p>
           </div>
         ) : (
           [...expenses].reverse().map(e => (
-            <div key={e.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-50 flex justify-between items-center group active:scale-[0.98] transition-transform">
-              <div>
-                <h3 className="font-bold text-gray-800 text-lg">{e.description}</h3>
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium text-blue-600">{e.payer === 'You' ? 'You' : e.payer}</span> paid
-                  <span className="mx-1">•</span>
-                  {e.participants.length} people
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-gray-900">{e.total_amount} {e.currency}</p>
-                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Total</p>
-              </div>
-            </div>
+            <Card key={e.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]">
+              <CardContent className="p-4 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-10 w-10 border">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                      {e.payer.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold text-foreground leading-none mb-1">{e.description}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium text-primary">{e.payer === 'You' ? 'You' : e.payer}</span> paid
+                      <span className="mx-1">•</span>
+                      {e.participants.length} people
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-foreground">{e.total_amount} {e.currency}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">Total</p>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
 
-      <button
+      <Button
         onClick={onAddClick}
-        className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all z-10"
+        size="icon"
+        className="fixed bottom-8 right-8 w-14 h-14 rounded-full shadow-lg shadow-primary/20 hover:shadow-xl transition-all z-10"
         aria-label="Add Bill"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
+        <Plus className="h-6 w-6" />
+      </Button>
     </div>
   );
 }
