@@ -73,6 +73,15 @@ def get_exchange_rate(from_curr, to_curr):
 def get_symbol(currency_code):
     return CURRENCY_SYMBOLS.get(currency_code, f"{currency_code} ")
 
+def render_currency_selector(label, key):
+    active_currencies = st.session_state.group_settings['active_currencies']
+    return st.selectbox(
+        label, 
+        active_currencies, 
+        index=active_currencies.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active_currencies else 0,
+        key=key
+    )
+
 def agraph_fixed(nodes, edges, config, key=None):
     nodes_data = [node.to_dict() for node in nodes]
     edges_data = [edge.to_dict() for edge in edges]
@@ -417,7 +426,7 @@ st.title("💸 MoneySplitter")
 st.caption("Decentralized & Private Debt Splitting")
 
 # --- Tabs ---
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📜 Transactions", "💰 Bottom Line", "🗺️ Map", "📊 Details", "💱 Rates", "⚙️ Settings"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📜 Transactions", "📊 Details", "🗺️ Map", "💱 Rates", "⚙️ Settings"])
 
 with tab1:
     st.subheader("Group Transactions")
@@ -461,49 +470,42 @@ with tab1:
                 render_transaction_item(original_idx, tx)
 
 with tab2:
-    st.subheader("The Bottom Line")
+    st.subheader("📊 Details")
     ledger = get_ledger()
-    multi_balances = ledger.get_net_balances()
     
-    if not multi_balances or all(not any(b.values()) for b in multi_balances.values()):
-        st.info("No active balances. Add some transactions to see who owes whom!")
+    selected_curr = render_currency_selector("Select Settlement Currency", key="details_curr")
+    
+    exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in CURRENCY_SYMBOLS.keys()}
+    unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
+    
+    if not unified_balances or not any(abs(v) > Decimal('0.001') for v in unified_balances.values()):
+        st.success("Everyone is settled up! 🎉")
     else:
-        # Show all currencies that have non-zero balances
-        currencies_with_balances = [c for c, b in multi_balances.items() if any(abs(v) > Decimal('0.001') for v in b.values())]
+        st.write(f"### Balances in {selected_curr}")
+        symbol = get_symbol(selected_curr)
+        for user in st.session_state.users:
+            balance = unified_balances.get(user, Decimal('0'))
+            if balance > Decimal('0.001'):
+                st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
+            elif balance < Decimal('-0.001'):
+                st.markdown(f"**{user}**: <span class='balance-orange'>owes {symbol}{abs(balance):.2f}</span>", unsafe_allow_html=True)
         
-        if not currencies_with_balances:
-            st.success("Everyone is settled up! 🎉")
+        st.divider()
+        st.write(f"### Transactions to Settle ({selected_curr})")
+        simplified = DebtSimplifier.simplify({selected_curr: unified_balances}).get(selected_curr, [])
+        
+        if not simplified:
+            st.info("No active debts.")
         else:
-            for curr in currencies_with_balances:
-                st.write(f"### Balances in {curr}")
-                balances = multi_balances.get(curr, {})
-                symbol = get_symbol(curr)
-                
-                for user in st.session_state.users:
-                    balance = balances.get(user, Decimal('0'))
-                    if balance > Decimal('0.001'):
-                        st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
-                    elif balance < Decimal('-0.001'):
-                        st.markdown(f"**{user}**: <span class='balance-orange'>owes {symbol}{abs(balance):.2f}</span>", unsafe_allow_html=True)
-                
-                st.divider()
-                st.subheader(f"Smart Settle ({curr})")
-                simplified = DebtSimplifier.simplify({curr: balances}).get(curr, [])
-                
-                if not simplified:
-                    st.write("Settled up in this currency.")
-                else:
-                    for tx in simplified:
-                        st.markdown(f"🤝 **{tx['from']}** needs to pay **{tx['to']}** `{symbol}{tx['amount']}`")
-                st.write("")
+            df = pd.DataFrame(simplified)
+            df['amount'] = df['amount'].apply(lambda x: f"{symbol}{x}")
+            st.table(df)
 
 with tab3:
     st.subheader("Debt Map")
     ledger = get_ledger()
     
-    # Bug fix: Show all active currencies from settings
-    active_currencies = st.session_state.group_settings['active_currencies']
-    selected_curr = st.selectbox("Select Currency for Map", active_currencies)
+    selected_curr = render_currency_selector("Select Currency for Map", key="map_curr")
     
     exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in CURRENCY_SYMBOLS.keys()}
     unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
@@ -533,7 +535,7 @@ with tab3:
             ))
 
         for user in users_in_debt:
-            balance = balances.get(user, Decimal('0'))
+            balance = unified_balances.get(user, Decimal('0'))
             color = "#28a745" if balance > 0 else "#fd7e14"
             
             nodes.append(Node(
@@ -558,25 +560,6 @@ with tab3:
             agraph_fixed(nodes=nodes, edges=edges, config=config, key=f"graph_{selected_curr}_{st.session_state.graph_reset_key}")
 
 with tab4:
-    st.subheader("Transaction Details")
-    ledger = get_ledger()
-    multi_balances = ledger.get_net_balances()
-    simplified_all = DebtSimplifier.simplify(multi_balances)
-    
-    any_debts = False
-    for curr, txs in simplified_all.items():
-        if txs:
-            any_debts = True
-            st.write(f"### {curr} Transactions to Settle")
-            df = pd.DataFrame(txs)
-            symbol = get_symbol(curr)
-            df['amount'] = df['amount'].apply(lambda x: f"{symbol}{x}")
-            st.table(df)
-    
-    if not any_debts:
-        st.info("No active debts.")
-
-with tab5:
     st.subheader("💱 Exchange Rates")
     
     rates_info = st.session_state.bridge.get_exchange_rates()
@@ -592,8 +575,8 @@ with tab5:
         st.caption("No exchange rates downloaded yet.")
         
     if rates:
+        base_curr = render_currency_selector("Select Base Currency", key="rates_curr")
         active_currencies = st.session_state.group_settings['active_currencies']
-        base_curr = st.selectbox("Select Base Currency", active_currencies, index=active_currencies.index(st.session_state.group_settings['default_currency']) if st.session_state.group_settings['default_currency'] in active_currencies else 0)
         
         display_data = []
         for curr in active_currencies:
@@ -618,7 +601,7 @@ with tab5:
     if st.button("🔄 Update Conversion Table", type="primary", use_container_width=True):
         update_rates_dialog()
 
-with tab6:
+with tab5:
     st.subheader("⚙️ Group Settings")
     
     with st.expander("👥 Members", expanded=True):
