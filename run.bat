@@ -11,5 +11,5 @@ echo Activating virtual environment...
 call %VENV_DIR%\Scripts\activate
 
 echo Launching MoneySplitter...
-streamlit run streamlit_app.py
+streamlit run app.py
 pause

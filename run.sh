@@ -14,4 +14,4 @@ echo "🔌 Activating virtual environment..."
 source "$VENV_DIR/bin/activate"
 
 echo "✨ Launching MoneySplitter..."
-streamlit run streamlit_app.py
+streamlit run app.py
