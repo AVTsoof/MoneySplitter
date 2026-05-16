@@ -337,6 +337,19 @@ Instead of "Directed Acyclic Graph," the button for this page is labeled **"Show
 
 ---
 
+### [PENDING] Phase 11: Firebase Architecture & Firestore Integration (Alternative/Evolution)
+
+**Objective:** Evaluate and potentially migrate to a Firebase-backed architecture for robust multi-tenant authentication, data modeling, and security.
+
+* **Firebase Google Authentication:** Abstract OAuth 2.0 flows using the Google Sign-In SDK. Securely propagate the Identity Token (JWT) through client-side database interactions.
+* **Firestore Data Modeling:** Implement Isolated Document Metadata pattern for group separation (`/users/{userId}`, `/groups/{groupId}`, etc.).
+* **Security Rules:** Enforce multi-tenant separation using server-side Firestore security rules (ownership verification and dynamic group membership lookups).
+* **Cost Optimization:** Design structural queries strictly within security allowances ("Rules Are Not Filters") and cache group memberships locally to preserve the Spark Free Plan's 50k reads/day limit.
+
+*For full technical details, see `docs/firebase_auth_architecture.md`.*
+
+---
+
 2026-05-15 13:46:12
 
 ## Modular Architecture & Design Pattern Specification
