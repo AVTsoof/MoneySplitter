@@ -2,6 +2,7 @@ import os
 import json
 from typing import List
 from .repository import TransactionRepository
+from core.engine import AuthProvider, UserSession
 
 class LocalFileSystemIO(TransactionRepository):
     """
@@ -142,3 +143,24 @@ class LocalFileSystemIO(TransactionRepository):
                 dst = os.path.join(group_dir, filename)
                 if os.path.isfile(src):
                     shutil.copy2(src, dst)
+
+
+class LocalFSAuthProvider(AuthProvider):
+    """
+    Local-filesystem implementation of AuthProvider.
+
+    Discovers known member names by reading group_settings.json files
+    from every group folder managed by a LocalFileSystemIO repository.
+    Swap this for GDriveAuthProvider (or any other AuthProvider subclass)
+    without changing the UserSession or UI interface.
+    """
+
+    def __init__(self, repo: LocalFileSystemIO):
+        self._repo = repo
+
+    def get_known_members(self) -> List[str]:
+        all_settings = [
+            self._repo.get_group_settings(gid)
+            for gid in self._repo.list_groups()
+        ]
+        return UserSession.collect_known_members(all_settings)

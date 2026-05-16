@@ -333,3 +333,110 @@ class CurrencyConverter:
             return Decimal('1.0')
             
         return rate_to / rate_from
+
+
+class AuthProvider(ABC):
+    """
+    Abstract interface for auth-related discovery operations.
+
+    The UI layer and UserSession depend on this interface only.
+    Concrete subclasses (LocalFSAuthProvider, GDriveAuthProvider, …)
+    implement it against a specific storage backend.
+    """
+
+    @abstractmethod
+    def get_known_members(self) -> List[str]:
+        """
+        Return a sorted, deduplicated list of all member names that are
+        known to this backend (e.g. across all local group folders, or
+        all shared Drive files for a Google account).
+        """
+        pass
+
+
+class UserSession:
+    """
+    Manages the lifecycle of a user's login session.
+
+    This is pure core logic — it holds no UI or framework dependencies.
+    The UI layer (e.g. Streamlit) is responsible for persisting an instance
+    of this class across renders (e.g. in session_state) and calling rerun
+    after any mutation.
+
+    States
+    ------
+    - Not logged in  : logged_in_user is None
+    - Logged in, no group selected : logged_in_user set, active_group_id is None
+    - Fully active   : both logged_in_user and active_group_id are set
+    """
+
+    def __init__(self):
+        self.logged_in_user: Optional[str] = None
+        self.active_group_id: Optional[str] = None
+
+    # ── Predicates ──────────────────────────────────────────────────────────
+
+    @property
+    def is_logged_in(self) -> bool:
+        return self.logged_in_user is not None
+
+    @property
+    def has_group(self) -> bool:
+        return self.active_group_id is not None
+
+    @property
+    def is_ready(self) -> bool:
+        """True when a user is logged in AND a group is selected."""
+        return self.is_logged_in and self.has_group
+
+    # ── Mutations ───────────────────────────────────────────────────────────
+
+    def login(self, username: str) -> None:
+        """Set the active user. Raises ValueError for blank names."""
+        username = username.strip()
+        if not username:
+            raise ValueError("Username must not be empty.")
+        self.logged_in_user = username
+
+    def logout(self) -> None:
+        """Clear everything — the user must log in again."""
+        self.logged_in_user = None
+        self.active_group_id = None
+
+    def select_group(self, group_id: str) -> None:
+        """Set the active group. User must already be logged in."""
+        if not self.is_logged_in:
+            raise RuntimeError("Cannot select a group before logging in.")
+        self.active_group_id = group_id
+
+    def switch_group(self) -> None:
+        """Keep the logged-in user but return to group selection."""
+        self.active_group_id = None
+
+    # ── Helpers ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def collect_known_members(group_settings_list: List[Dict]) -> List[str]:
+        """
+        Given a list of raw settings dicts (from the IO layer), return a
+        sorted, deduplicated list of all known member names.
+
+        Parameters
+        ----------
+        group_settings_list:
+            Each item is the dict returned by repo.get_group_settings(gid).
+        """
+        members: set = set()
+        for settings in group_settings_list:
+            if settings:
+                members.update(settings.get("members", []))
+        return sorted(members)
+
+    def resolve_current_user(self, group_members: List[str]) -> str:
+        """
+        Return the member name to use as current_user_id when opening a group.
+        Falls back to the first member if the logged-in user isn't in the group.
+        """
+        if self.logged_in_user in group_members:
+            return self.logged_in_user
+        return group_members[0] if group_members else (self.logged_in_user or "Unknown")

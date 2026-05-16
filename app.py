@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 from decimal import Decimal
-from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, Transaction, ExactSplitStrategy, CurrencyConverter
+from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, Transaction, ExactSplitStrategy, CurrencyConverter, UserSession
 import uuid
-from io_layer.local_fs import LocalFileSystemIO
+from io_layer.local_fs import LocalFileSystemIO, LocalFSAuthProvider
 from bridge.orchestrator import Bridge
 from config.app_config import load_config, save_config, get_default_data_dir
 
@@ -96,40 +96,78 @@ if 'repo' not in st.session_state:
     _app_cfg = load_config()
     _data_dir = _app_cfg.get("data_dir", get_default_data_dir())
     st.session_state.repo = LocalFileSystemIO(_data_dir)
+if 'user_session' not in st.session_state:
+    st.session_state.user_session = UserSession()
+if 'auth_provider' not in st.session_state:
+    st.session_state.auth_provider = LocalFSAuthProvider(st.session_state.repo)
 
+# Convenience aliases used throughout this file
+_session: UserSession = st.session_state.user_session
+_auth: LocalFSAuthProvider = st.session_state.auth_provider
+
+# ── Step 1: Login ────────────────────────────────────────────────────────────
+if not _session.is_logged_in:
+    st.title("Welcome to MoneySplitter 💸")
+    st.markdown("##### Who are you?")
+    st.write("Select your name to continue, or type a new name if this is your first time.")
+
+    known = _auth.get_known_members()
+
+    if known:
+        chosen = st.selectbox("Select your name", ["— type a new name —"] + known)
+    else:
+        chosen = "— type a new name —"
+
+    if chosen == "— type a new name —":
+        manual = st.text_input("Your name", placeholder="e.g. Alice")
+        login_name = manual.strip()
+    else:
+        login_name = chosen
+
+    if st.button("Continue ➜", type="primary", disabled=not login_name):
+        _session.login(login_name)
+        st.rerun()
+
+    st.stop()
+
+# ── Step 2: Group selection ──────────────────────────────────────────────────
 @st.dialog("Create New Group")
 def create_group_dialog():
     st.write("Enter details for your new group:")
     group_name = st.text_input("Group Name (Folder Name)")
-    member_names = st.text_input("Members (comma separated)", placeholder="Alice, Bob, Charlie")
+    # Pre-fill the logged-in user as the first member
+    default_members = _session.logged_in_user
+    member_names = st.text_input("Members (comma separated)", value=default_members, placeholder="Alice, Bob, Charlie")
     default_currency = st.selectbox("Default Currency", list(CURRENCY_SYMBOLS.keys()), index=0)
-    
+
     if st.button("Create", type="primary"):
         if group_name and member_names:
             members_list = [m.strip() for m in member_names.split(",") if m.strip()]
             settings = GroupSettings(default_currency=default_currency, active_currencies={default_currency}, members=members_list)
             st.session_state.repo.save_group_settings(group_name, settings.to_dict())
-            
-            st.session_state.bridge = Bridge(st.session_state.repo, current_user_id=members_list[0], group_id=group_name)
-            st.session_state.current_user = members_list[0]
+            current_user = _session.resolve_current_user(members_list)
+            _session.select_group(group_name)
+            st.session_state.bridge = Bridge(st.session_state.repo, current_user_id=current_user, group_id=group_name)
+            st.session_state.current_user = current_user
             st.rerun()
         else:
             st.error("Please provide a valid group name and at least one member.")
 
-if 'bridge' not in st.session_state or getattr(st.session_state.bridge, 'group_id', None) is None:
+if not _session.has_group or 'bridge' not in st.session_state:
+    logged_user = _session.logged_in_user
     st.title("Welcome to MoneySplitter 💸")
-    st.write("Please select or create a group to continue.")
-    
+    st.markdown(f"👋 Hello, **{logged_user}**! Select or create a group to continue.")
+
     available_groups = st.session_state.repo.list_groups()
-    
+
     # Build display labels: prefer the "name" field from settings, fall back to folder ID
     group_labels = {}
     for gid in available_groups:
         s = st.session_state.repo.get_group_settings(gid)
         group_labels[gid] = s.get("name", gid) if s else gid
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.subheader("Open Group")
         if available_groups:
@@ -139,29 +177,35 @@ if 'bridge' not in st.session_state or getattr(st.session_state.bridge, 'group_i
             if st.button("Open", type="primary"):
                 temp_settings = st.session_state.repo.get_group_settings(selected_group)
                 members = temp_settings.get("members", [])
-                current_user = members[0] if members else "Unknown"
+                current_user = _session.resolve_current_user(members)
+                _session.select_group(selected_group)
                 st.session_state.bridge = Bridge(st.session_state.repo, current_user_id=current_user, group_id=selected_group)
                 st.session_state.current_user = current_user
                 st.rerun()
         else:
             st.info("No groups found.")
-            
+
     with col2:
         st.subheader("New Group")
         if st.button("➕ Create New Group"):
             create_group_dialog()
-            
+
     with col3:
         st.subheader("Examples")
         if st.button("📖 Load Example Group"):
             st.session_state.repo.load_example_group()
             st.toast("Example group loaded! You can now select it on the left.")
             st.rerun()
-            
+
+    st.divider()
+    if st.button("← Log Out", use_container_width=False):
+        _session.logout()
+        st.rerun()
+
     st.stop()  # Stop rendering the rest of the app until a group is selected
 
 if 'current_user' not in st.session_state:
-    st.session_state.current_user = st.session_state.bridge.current_user_id
+    st.session_state.current_user = _session.logged_in_user or st.session_state.bridge.current_user_id
 
 def get_ledger():
     return st.session_state.bridge.ledger
@@ -485,13 +529,24 @@ def render_transaction_item(original_idx, tx):
 
 # --- Sidebar Setup ---
 with st.sidebar:
-    st.header("Mock Sync Tools")
-    if getattr(st.session_state.bridge, 'group_id', None) is not None:
-        if st.button("🚪 Switch Group", use_container_width=True):
-            st.session_state.bridge.group_id = None
-            st.rerun()
-            
-    new_user = st.selectbox("Current User (Simulate device):", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(st.session_state.current_user) if st.session_state.current_user in st.session_state.bridge.settings.members else 0)
+    st.markdown(f"### 👤 {_session.logged_in_user}")
+    _group_display = getattr(st.session_state.bridge.settings, 'name', None) or st.session_state.bridge.group_id
+    st.caption(f"📁 {_group_display}")
+    st.divider()
+
+    if st.button("🔄 Change Group", use_container_width=True):
+        _session.switch_group()
+        del st.session_state.bridge
+        st.rerun()
+
+    if st.button("🚪 Log Out", use_container_width=True):
+        _session.logout()
+        del st.session_state.bridge
+        st.rerun()
+
+    st.divider()
+    st.caption("⚙️ Dev Tools")
+    new_user = st.selectbox("Simulate device as:", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(st.session_state.current_user) if st.session_state.current_user in st.session_state.bridge.settings.members else 0)
     if new_user != st.session_state.current_user:
         st.session_state.current_user = new_user
         st.session_state.bridge.current_user_id = new_user
