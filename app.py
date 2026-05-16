@@ -544,16 +544,7 @@ with st.sidebar:
         del st.session_state.bridge
         st.rerun()
 
-    st.divider()
-    st.caption("⚙️ Dev Tools")
-    new_user = st.selectbox("Simulate device as:", st.session_state.bridge.settings.members, index=st.session_state.bridge.settings.members.index(st.session_state.current_user) if st.session_state.current_user in st.session_state.bridge.settings.members else 0)
-    if new_user != st.session_state.current_user:
-        st.session_state.current_user = new_user
-        st.session_state.bridge.current_user_id = new_user
-        st.rerun()
-    if st.button("🔄 Refresh Data (Sync)", width='stretch'):
-        st.session_state.bridge.refresh()
-        st.rerun()
+
 
 # --- UI Header ---
 st.title("💸 MoneySplitter")
