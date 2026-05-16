@@ -198,7 +198,7 @@ if not _session.has_group or 'bridge' not in st.session_state:
             st.rerun()
 
     st.divider()
-    if st.button("← Log Out", use_container_width=False):
+    if st.button("← Log Out", width='content'):
         _session.logout()
         st.rerun()
 
@@ -250,7 +250,7 @@ def add_bill_dialog():
     if split_method == "Unequally":
         is_valid = is_valid and abs(Decimal(str(sum(exact_amounts.values()))) - Decimal(str(amount))) < Decimal('0.001')
     
-    if st.button("Add Bill", use_container_width=True, type="primary", disabled=not is_valid):
+    if st.button("Add Bill", width='stretch', type="primary", disabled=not is_valid):
         full_timestamp = datetime.combine(bill_date, bill_time)
         strategy = EqualSplitStrategy() if split_method == "Equally" else ExactSplitStrategy({k: Decimal(str(v)) for k, v in exact_amounts.items()})
         
@@ -297,7 +297,7 @@ def add_transfer_dialog():
     
     is_valid = amount > 0 and sender != receiver
     
-    if st.button("Add Transfer", use_container_width=True, type="primary", disabled=not is_valid):
+    if st.button("Add Transfer", width='stretch', type="primary", disabled=not is_valid):
         full_timestamp = datetime.combine(transfer_date, transfer_time)
         new_transfer = Transfer(
             id=str(uuid.uuid4()),
@@ -362,7 +362,7 @@ def confirm_delete_dialog(idx, tx):
     st.warning("Are you sure you want to delete this transaction?")
     render_transaction_summary(tx)
     st.write("This action cannot be undone.")
-    if st.button("Yes, Delete", type="primary", use_container_width=True):
+    if st.button("Yes, Delete", type="primary", width='stretch'):
         st.session_state.bridge.delete_transaction(tx.id)
         st.toast("Transaction deleted.")
         st.rerun()
@@ -371,7 +371,7 @@ def confirm_delete_dialog(idx, tx):
 def confirm_save_dialog(idx, updated_tx):
     st.write("Save changes to this transaction?")
     render_transaction_summary(updated_tx)
-    if st.button("Yes, Save Changes", type="primary", use_container_width=True):
+    if st.button("Yes, Save Changes", type="primary", width='stretch'):
         updated = st.session_state.bridge.update_transaction(updated_tx)
         if updated:
             st.toast("Changes saved!")
@@ -388,7 +388,7 @@ def delete_group_dialog():
     st.write("To confirm, type the group name below:")
     confirm_input = st.text_input("Group name", placeholder=display_name, key="delete_group_confirm_input")
     is_confirmed = confirm_input.strip() == display_name
-    if st.button("🗑️ Permanently Delete", type="primary", use_container_width=True, disabled=not is_confirmed):
+    if st.button("🗑️ Permanently Delete", type="primary", width='stretch', disabled=not is_confirmed):
         st.session_state.repo.delete_group(group_id)
         st.session_state.bridge.group_id = None  # Force back to group selection
         del st.session_state.bridge
@@ -412,7 +412,7 @@ def update_rates_dialog():
         st.rerun()
     else:
         st.error("Request timed out or failed. Please check your internet connection and try again.")
-        if st.button("Close", use_container_width=True):
+        if st.button("Close", width='stretch'):
             st.rerun()
 
 def render_transaction_item(original_idx, tx):
@@ -499,7 +499,7 @@ def render_transaction_item(original_idx, tx):
             if new_amount <= 0 or new_sender == new_receiver:
                 save_disabled = True
 
-        if c1.button("💾 Save Changes", use_container_width=True, disabled=save_disabled, key=f"save_{tx.id}", type="primary"):
+        if c1.button("💾 Save Changes", width='stretch', disabled=save_disabled, key=f"save_{tx.id}", type="primary"):
             if isinstance(tx, Expense):
                 strategy = EqualSplitStrategy() if new_split_method == "Equally" else ExactSplitStrategy({k: Decimal(str(v)) for k, v in new_exact_amounts.items()})
                 updated_tx = Expense(
@@ -524,7 +524,7 @@ def render_transaction_item(original_idx, tx):
                 )
             confirm_save_dialog(original_idx, updated_tx)
         
-        if c2.button("🗑️ Delete", use_container_width=True, key=f"del_{tx.id}"):
+        if c2.button("🗑️ Delete", width='stretch', key=f"del_{tx.id}"):
             confirm_delete_dialog(original_idx, tx)
 
 # --- Sidebar Setup ---
@@ -534,12 +534,12 @@ with st.sidebar:
     st.caption(f"📁 {_group_display}")
     st.divider()
 
-    if st.button("🔄 Change Group", use_container_width=True):
+    if st.button("🔄 Change Group", width='stretch'):
         _session.switch_group()
         del st.session_state.bridge
         st.rerun()
 
-    if st.button("🚪 Log Out", use_container_width=True):
+    if st.button("🚪 Log Out", width='stretch'):
         _session.logout()
         del st.session_state.bridge
         st.rerun()
@@ -551,7 +551,7 @@ with st.sidebar:
         st.session_state.current_user = new_user
         st.session_state.bridge.current_user_id = new_user
         st.rerun()
-    if st.button("🔄 Refresh Data (Sync)", use_container_width=True):
+    if st.button("🔄 Refresh Data (Sync)", width='stretch'):
         st.session_state.bridge.refresh()
         st.rerun()
 
@@ -568,10 +568,10 @@ with tab1:
     
     col_add1, col_add2 = st.columns(2)
     with col_add1:
-        if st.button("➕ Add a Bill", type="primary", use_container_width=True):
+        if st.button("➕ Add a Bill", type="primary", width='stretch'):
             add_bill_dialog()
     with col_add2:
-        if st.button("💸 Add a Transfer", use_container_width=True):
+        if st.button("💸 Add a Transfer", width='stretch'):
             add_transfer_dialog()
 
     col_group, col_sort = st.columns(2)
@@ -731,9 +731,9 @@ with tab4:
                 })
         
         if display_data:
-            st.dataframe(pd.DataFrame(display_data), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(display_data), width='stretch', hide_index=True)
             
-    if st.button("🔄 Update Conversion Table", type="primary", use_container_width=True):
+    if st.button("🔄 Update Conversion Table", type="primary", width='stretch'):
         update_rates_dialog()
 
 with tab5:
@@ -784,7 +784,7 @@ with tab5:
 
         col_apply, col_reset = st.columns(2)
         with col_apply:
-            if st.button("✅ Apply", use_container_width=True, type="primary",
+            if st.button("✅ Apply", width='stretch', type="primary",
                          disabled=(new_path.strip() == current_data_dir)):
                 _cfg = load_config()
                 _cfg["data_dir"] = new_path.strip()
@@ -796,7 +796,7 @@ with tab5:
                 st.toast(f"Data directory updated. Please select a group.", icon="📂")
                 st.rerun()
         with col_reset:
-            if st.button("↩️ Reset to Default", use_container_width=True,
+            if st.button("↩️ Reset to Default", width='stretch',
                          disabled=(current_data_dir == default_data_dir)):
                 _cfg = load_config()
                 _cfg["data_dir"] = default_data_dir
@@ -809,7 +809,7 @@ with tab5:
 
     with st.expander("🚨 Danger Zone"):
         st.write("Permanently delete this group and all its data. This cannot be undone.")
-        if st.button("🗑️ Delete This Group", type="primary", use_container_width=True):
+        if st.button("🗑️ Delete This Group", type="primary", width='stretch'):
             delete_group_dialog()
 
 
