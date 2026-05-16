@@ -29,9 +29,25 @@ class GroupSettings:
         )
 
 class UserPreferences:
-    def __init__(self, favorite_currencies: List[str] = None, base_currency: str = 'USD'):
+    def __init__(self, favorite_currencies: List[str] = None, base_currency: str = 'USD', last_opened_group: str = None):
         self.favorite_currencies = favorite_currencies or ['USD']
         self.base_currency = base_currency
+        self.last_opened_group = last_opened_group
+
+    def to_dict(self) -> Dict:
+        return {
+            "favorite_currencies": self.favorite_currencies,
+            "base_currency": self.base_currency,
+            "last_opened_group": self.last_opened_group
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'UserPreferences':
+        return cls(
+            favorite_currencies=data.get('favorite_currencies', ['USD']),
+            base_currency=data.get('base_currency', 'USD'),
+            last_opened_group=data.get('last_opened_group')
+        )
 
 class SplitStrategy(ABC):
     @abstractmethod
@@ -354,6 +370,8 @@ class AuthProvider(ABC):
         pass
 
 
+from config.app_config import get_logged_in_user, set_logged_in_user, load_user_preferences, save_user_preferences
+
 class UserSession:
     """
     Manages the lifecycle of a user's login session.
@@ -371,8 +389,14 @@ class UserSession:
     """
 
     def __init__(self):
-        self.logged_in_user: Optional[str] = None
+        self.logged_in_user: Optional[str] = get_logged_in_user()
         self.active_group_id: Optional[str] = None
+        
+        # Auto-load the last opened group if the user was already logged in
+        if self.logged_in_user:
+            prefs_data = load_user_preferences(self.logged_in_user)
+            prefs = UserPreferences.from_dict(prefs_data)
+            self.active_group_id = prefs.last_opened_group
 
     # ── Predicates ──────────────────────────────────────────────────────────
 
@@ -397,21 +421,41 @@ class UserSession:
         if not username:
             raise ValueError("Username must not be empty.")
         self.logged_in_user = username
+        set_logged_in_user(username)
+        
+        # Load user preferences and auto-select group if available
+        prefs_data = load_user_preferences(self.logged_in_user)
+        prefs = UserPreferences.from_dict(prefs_data)
+        self.active_group_id = prefs.last_opened_group
 
     def logout(self) -> None:
         """Clear everything — the user must log in again."""
         self.logged_in_user = None
         self.active_group_id = None
+        set_logged_in_user(None)
 
     def select_group(self, group_id: str) -> None:
         """Set the active group. User must already be logged in."""
         if not self.is_logged_in:
             raise RuntimeError("Cannot select a group before logging in.")
         self.active_group_id = group_id
+        
+        # Save preference
+        prefs_data = load_user_preferences(self.logged_in_user)
+        prefs = UserPreferences.from_dict(prefs_data)
+        prefs.last_opened_group = group_id
+        save_user_preferences(self.logged_in_user, prefs.to_dict())
 
     def switch_group(self) -> None:
         """Keep the logged-in user but return to group selection."""
         self.active_group_id = None
+        
+        # Clear the preference so they don't auto-load next time
+        if self.logged_in_user:
+            prefs_data = load_user_preferences(self.logged_in_user)
+            prefs = UserPreferences.from_dict(prefs_data)
+            prefs.last_opened_group = None
+            save_user_preferences(self.logged_in_user, prefs.to_dict())
 
     # ── Helpers ─────────────────────────────────────────────────────────────
 

@@ -771,6 +771,20 @@ class MainApplication:
             self.render_login()
             return
             
+        # If the session automatically loaded a group from preferences, 
+        # but the Bridge hasn't been instantiated yet in this Streamlit run, build it.
+        if self.session.has_group and UIStateKeys.BRIDGE not in st.session_state:
+            group_id = self.session.active_group_id
+            temp_settings = self.repo.get_group_settings(group_id)
+            if temp_settings:
+                members = temp_settings.get("members", [])
+                current_user = self.session.resolve_current_user(members)
+                st.session_state[UIStateKeys.BRIDGE] = Bridge(self.repo, current_user_id=current_user, group_id=group_id)
+                st.session_state[UIStateKeys.CURRENT_USER] = current_user
+            else:
+                # The saved group no longer exists in the repo
+                self.session.switch_group()
+                
         if not self.session.has_group or UIStateKeys.BRIDGE not in st.session_state:
             self.render_group_selection()
             return
