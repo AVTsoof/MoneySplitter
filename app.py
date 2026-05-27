@@ -81,6 +81,39 @@ def get_exchange_rate(from_curr, to_curr):
     rates_data = st.session_state.bridge.get_exchange_rates().get("rates", {})
     return CurrencyConverter.get_exchange_rate(rates_data, from_curr, to_curr)
 
+def compute_running_balances(transactions, default_currency, rates_data, members):
+    """
+    Walk transactions in chronological order and return a dict:
+      {tx_id: {member: unified_balance_in_default_currency}}
+    Each snapshot represents the net balance of every member *after* that transaction.
+    """
+    # running per-currency balance: {currency: {user: Decimal}}
+    running = {}
+    snapshots = {}
+
+    sorted_txs = sorted(transactions, key=lambda t: t.timestamp)
+
+    for tx in sorted_txs:
+        currency = tx.currency
+        if currency not in running:
+            running[currency] = {}
+        tx.apply_to_balances(running[currency])
+
+        # Unify all currencies into default_currency for the snapshot
+        unified = {m: Decimal('0') for m in members}
+        for curr, balances in running.items():
+            if curr == default_currency:
+                rate = Decimal('1')
+            else:
+                rate = CurrencyConverter.get_exchange_rate(rates_data, curr, default_currency)
+            for user, bal in balances.items():
+                if user in unified:
+                    unified[user] += (bal * rate).quantize(Decimal('0.01'))
+
+        snapshots[tx.id] = {m: unified[m] for m in members}
+
+    return snapshots
+
 def render_currency_selector(label, key):
     active_currencies = list(st.session_state.bridge.settings.active_currencies)
     default_curr = st.session_state.bridge.settings.default_currency
@@ -352,7 +385,7 @@ class UIComponents:
         """, unsafe_allow_html=True)
 
     @staticmethod
-    def render_transaction_item(original_idx, tx):
+    def render_transaction_item(original_idx, tx, balance_snapshot=None):
         bridge = st.session_state.bridge
         symbol = get_currency_symbol(tx.currency)
         default_curr = bridge.settings.default_currency
@@ -375,6 +408,35 @@ class UIComponents:
             header = f"{date_str} | **{tx.description}** — {amount_display} | {tx.sender} ➔ {tx.receiver}"
 
         with st.expander(header):
+            # --- Running balance snapshot ---
+            if balance_snapshot:
+                default_curr = st.session_state.bridge.settings.default_currency
+                default_symbol = get_currency_symbol(default_curr)
+                header_cells = ""
+                value_cells = ""
+                for member, bal in balance_snapshot.items():
+                    if bal > Decimal('0.001'):
+                        color = "#28a745"
+                        label = f"+{default_symbol}{bal:.2f}"
+                    elif bal < Decimal('-0.001'):
+                        color = "#fd7e14"
+                        label = f"-{default_symbol}{abs(bal):.2f}"
+                    else:
+                        color = "#6c757d"
+                        label = f"{default_symbol}0.00"
+                    header_cells += f"<th style='padding:2px 12px 2px 0;font-weight:bold;text-align:left'>{member}</th>"
+                    value_cells += f"<td style='padding:2px 12px 2px 0;color:{color};font-weight:bold;text-align:left'>{label}</td>"
+                st.markdown(
+                    f"<div style='font-size:0.82em;padding:4px 0 2px 0;opacity:0.9'>"
+                    f"<b>📊 Balance after this transaction ({default_curr}):</b>"
+                    f"<table style='border-collapse:collapse;margin-top:4px'>"
+                    f"<tr>{header_cells}</tr>"
+                    f"<tr>{value_cells}</tr>"
+                    f"</table></div>",
+                    unsafe_allow_html=True
+                )
+                st.divider()
+
             if isinstance(tx, Expense):
                 shares_list = ", ".join([f"{p}: {symbol}{s:.2f}" for p, s in tx.shares.items()])
                 st.caption(f"👥 **Current Shares:** {shares_list}")
@@ -470,14 +532,23 @@ class MainAppTabs:
             st.caption("Order by")
             sort_order = st.radio("Sort Order", [UISortOrder.NEWEST, UISortOrder.OLDEST], horizontal=True, label_visibility="collapsed")
 
-        transactions_with_index = list(enumerate(st.session_state.bridge.get_transactions()))
+        bridge = st.session_state.bridge
+        all_transactions = bridge.get_transactions()
+        members = bridge.settings.members
+        default_currency = bridge.settings.default_currency
+        rates_data = bridge.get_exchange_rates().get("rates", {})
+
+        # Compute running balance snapshots (chronological, in default currency)
+        running_balances = compute_running_balances(all_transactions, default_currency, rates_data, members)
+
+        transactions_with_index = list(enumerate(all_transactions))
         transactions_with_index.sort(key=lambda x: x[1].timestamp, reverse=(sort_order == UISortOrder.NEWEST))
 
         if not transactions_with_index:
             st.info("No transactions yet. Tap + to add your first one.")
         elif group_by == UIGroupBy.LIST:
             for original_idx, tx in transactions_with_index:
-                UIComponents.render_transaction_item(original_idx, tx)
+                UIComponents.render_transaction_item(original_idx, tx, running_balances.get(tx.id))
         else:
             for date_key, group in groupby(transactions_with_index, key=lambda x: x[1].timestamp.date()):
                 date_str = date_key.strftime("%A, %b %d")
@@ -488,7 +559,7 @@ class MainAppTabs:
                 
                 st.markdown(f"##### {date_str}")
                 for original_idx, tx in group:
-                    UIComponents.render_transaction_item(original_idx, tx)
+                    UIComponents.render_transaction_item(original_idx, tx, running_balances.get(tx.id))
 
     @staticmethod
     def render_details_tab():
