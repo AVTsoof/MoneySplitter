@@ -498,21 +498,23 @@ class MainAppTabs:
         currency_codes = set(ledger.get_net_balances().keys()) | {selected_curr}
         exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in currency_codes}
         unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
+        symbol = get_currency_symbol(selected_curr)
         
-        if not unified_balances or not any(abs(v) > Decimal('0.001') for v in unified_balances.values()):
-            st.success("Everyone is settled up! 🎉")
-        else:
-            st.write(f"### Balances in {selected_curr}")
-            symbol = get_currency_symbol(selected_curr)
-            for user in st.session_state.bridge.settings.members:
-                balance = unified_balances.get(user, Decimal('0'))
-                if balance > Decimal('0.001'):
-                    st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
-                elif balance < Decimal('-0.001'):
-                    st.markdown(f"**{user}**: <span class='balance-orange'>owes {symbol}{abs(balance):.2f}</span>", unsafe_allow_html=True)
-            
-            st.divider()
-            st.write(f"### Transactions to Settle ({selected_curr})")
+        # Create subtabs
+        tab1, tab2 = st.tabs([f"Balances in {selected_curr}", f"Transactions to Settle ({selected_curr})"])
+        
+        with tab1:
+            if not unified_balances or not any(abs(v) > Decimal('0.001') for v in unified_balances.values()):
+                st.success("Everyone is settled up! 🎉")
+            else:
+                for user in st.session_state.bridge.settings.members:
+                    balance = unified_balances.get(user, Decimal('0'))
+                    if balance > Decimal('0.001'):
+                        st.markdown(f"**{user}**: <span class='balance-green'>is owed {symbol}{balance:.2f}</span>", unsafe_allow_html=True)
+                    elif balance < Decimal('-0.001'):
+                        st.markdown(f"**{user}**: <span class='balance-orange'>owes {symbol}{abs(balance):.2f}</span>", unsafe_allow_html=True)
+        
+        with tab2:
             simplified = DebtSimplifier.simplify({selected_curr: unified_balances}).get(selected_curr, [])
             
             if not simplified:
