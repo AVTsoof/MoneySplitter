@@ -40,4 +40,5 @@ Check **"The Bottom Line"** to see if you are owed money (Green) or owe money (O
 
 To run the app on your machine:
 1. Setup the environment: `./bootstrap.sh`
+   - This script creates a Python virtual environment and installs the required packages from `requirements.txt`.
 2. Run the app: `./run.sh`

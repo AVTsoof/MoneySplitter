@@ -2,10 +2,12 @@ from typing import List, Dict
 import urllib.request
 import json
 from datetime import datetime, timezone
+from decimal import Decimal
 
-from core.engine import Ledger, Transaction, GroupSettings, Expense, Transfer, ExactSplitStrategy
+from core.engine import Ledger, Transaction, GroupSettings, Expense, Transfer, ExactSplitStrategy, DebtSimplifier
 from io_layer.repository import TransactionRepository
 from io_layer.csv_adapter import CSVAdapter
+from io_layer.pdf_adapter import PDFReportGenerator
 
 class Bridge:
     """
@@ -225,3 +227,44 @@ class Bridge:
 
     def get_net_balances(self) -> Dict:
         return self.ledger.get_net_balances()
+
+    def generate_pdf_report(self) -> bytes:
+        """
+        Generates a comprehensive PDF report with all views (Settlements, Balances, Transactions, Exchange Rates, Settings).
+        Returns the PDF as bytes ready for download.
+        """
+        # Get group display name
+        group_name = getattr(self.settings, 'name', None) or self.group_id
+        members = self.settings.members or []
+        default_currency = self.settings.default_currency or "USD"
+        
+        # Initialize PDF generator
+        pdf = PDFReportGenerator(group_name, members)
+        
+        # Add Settlements section
+        balances = self.ledger.get_net_balances().get(default_currency, {})
+        unified_balances = {member: balances.get(member, Decimal('0')) for member in members}
+        simplified_debts = DebtSimplifier.simplify({default_currency: unified_balances}).get(default_currency, [])
+        pdf.add_settlements_section(simplified_debts, default_currency)
+        
+        # Add Balances section (use default currency)
+        pdf.add_balances_section(balances, default_currency)
+        
+        # Add Transactions section
+        exchange_rates = self.get_exchange_rates()
+        transactions = self.get_transactions()
+        pdf.add_transactions_section(transactions, exchange_rates=exchange_rates, default_currency=default_currency)
+        
+        # Add Exchange Rates section (filtered to active currencies)
+        active_currencies = list(self.settings.active_currencies) if self.settings.active_currencies else None
+        pdf.add_exchange_rates_section(exchange_rates, active_currencies=active_currencies, default_currency=default_currency)
+        
+        # Add Settings section
+        settings_dict = {
+            'name': group_name,
+            'default_currency': default_currency,
+            'active_currencies': list(self.settings.active_currencies) if self.settings.active_currencies else [],
+        }
+        pdf.add_settings_summary_section(settings_dict)
+        
+        return pdf.generate_pdf_bytes()

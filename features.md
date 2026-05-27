@@ -10,5 +10,6 @@
 - app: fixed: "bottom line" tab in streamlit app is updated when adding bills or transactions.
 - app: Dept map "Select Currency for Map" shows all currency options from the settings.
 - core+app: bill options support split equally and split unequally (exact amounts).
+- app: PDF report generator containing transaction history, net balances, simplified settlements, exchange rates, and group settings.
 
 # Depracated Features

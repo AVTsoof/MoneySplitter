@@ -23,6 +23,7 @@ class UITabNames:
     MAP = "🗺️ Map"
     RATES = "💱 Rates"
     SETTINGS = "⚙️ Settings"
+    REPORTS = "📄 Reports"
 
 class UISortOrder:
     NEWEST = "Newest"
@@ -735,6 +736,46 @@ class MainAppTabs:
             if st.button("🗑️ Delete This Group", type="primary", width='stretch'):
                 DialogManager.delete_group()
 
+    @staticmethod
+    def render_reports_tab():
+        st.subheader("📄 PDF Report")
+        bridge = st.session_state.bridge
+        
+        # Summary box
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Members", len(bridge.settings.members))
+        with col2:
+            st.metric("Transactions", len(bridge.get_transactions()))
+        
+        st.info(f"Generate a comprehensive PDF report with all your group's data: transactions, balances, settlements, exchange rates, and settings.")
+        
+        if st.button("📥 Generate & Download PDF Report", type="primary", use_container_width=True, key="generate_pdf_btn"):
+            with st.spinner("✨ Generating your PDF report..."):
+                try:
+                    # Generate PDF bytes
+                    pdf_bytes = bridge.generate_pdf_report()
+                    
+                    # Create filename with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    group_name = getattr(bridge.settings, 'name', None) or bridge.group_id
+                    # Sanitize filename
+                    safe_group_name = "".join(c for c in group_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                    filename = f"MoneySplitter_{safe_group_name}_{timestamp}.pdf"
+                    
+                    # Display download button
+                    st.download_button(
+                        label="📥 Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=filename,
+                        mime="application/pdf",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                    st.success("✅ PDF report generated successfully!")
+                except Exception as e:
+                    st.error(f"❌ Error generating PDF: {str(e)}")
+
 # --- Main App Views ---
 class MainApplication:
     def __init__(self):
@@ -836,13 +877,14 @@ class MainApplication:
         _group_display_name = getattr(st.session_state.bridge.settings, 'name', None) or st.session_state.bridge.group_id
         st.caption(f"📁 {_group_display_name} · Decentralized & Private Debt Splitting")
 
-        tabs = st.tabs([UITabNames.TRANSACTIONS, UITabNames.DETAILS, UITabNames.MAP, UITabNames.RATES, UITabNames.SETTINGS])
+        tabs = st.tabs([UITabNames.TRANSACTIONS, UITabNames.DETAILS, UITabNames.MAP, UITabNames.RATES, UITabNames.SETTINGS, UITabNames.REPORTS])
         
         with tabs[0]: MainAppTabs.render_transactions_tab()
         with tabs[1]: MainAppTabs.render_details_tab()
         with tabs[2]: MainAppTabs.render_map_tab()
         with tabs[3]: MainAppTabs.render_rates_tab()
         with tabs[4]: MainAppTabs.render_settings_tab()
+        with tabs[5]: MainAppTabs.render_reports_tab()
 
         st.divider()
         st.caption("🔒 MoneySplitter is private. Your data never leaves your device (Syncing to Google Drive coming soon).")
