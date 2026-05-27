@@ -21,10 +21,18 @@ class GroupSettings:
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'GroupSettings':
+        raw_members = data.get('members', [])
+        seen = set()
+        normalized_members = []
+        for member in raw_members:
+            cleaned = member.strip()
+            if cleaned and cleaned not in seen:
+                seen.add(cleaned)
+                normalized_members.append(cleaned)
         return cls(
             default_currency=data.get('default_currency', 'USD'),
             active_currencies=set(data.get('active_currencies', ['USD'])),
-            members=data.get('members', []),
+            members=normalized_members,
             name=data.get('name', None)
         )
 

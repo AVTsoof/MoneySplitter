@@ -3,7 +3,7 @@ import urllib.request
 import json
 from datetime import datetime, timezone
 
-from core.engine import Ledger, Transaction, GroupSettings
+from core.engine import Ledger, Transaction, GroupSettings, Expense, Transfer, ExactSplitStrategy
 from io_layer.repository import TransactionRepository
 from io_layer.csv_adapter import CSVAdapter
 
@@ -74,6 +74,75 @@ class Bridge:
         """Saves the current group settings to the repository."""
         if self.group_id:
             self.repository.save_group_settings(self.group_id, self.settings.to_dict())
+
+    def member_has_transactions(self, member_name: str) -> bool:
+        """Returns True if the named member appears in any existing transaction."""
+        for row in self.repository.fetch_events(self.group_id):
+            tx = CSVAdapter.csv_row_to_transaction(row)
+            if tx is None:
+                continue
+            if isinstance(tx, Expense):
+                if tx.payer == member_name or member_name in tx.participants:
+                    return True
+            elif isinstance(tx, Transfer):
+                if tx.sender == member_name or tx.receiver == member_name:
+                    return True
+        return False
+
+    def rename_member(self, old_name: str, new_name: str) -> bool:
+        """Renames a member in group settings and rewrites any affected transactions."""
+        old_name = old_name.strip()
+        new_name = new_name.strip()
+        if not old_name or not new_name or old_name == new_name:
+            return False
+
+        def transform(row_str: str):
+            tx = CSVAdapter.csv_row_to_transaction(row_str)
+            if tx is None:
+                return None
+
+            updated = False
+            if isinstance(tx, Expense):
+                if tx.payer == old_name:
+                    tx.payer = new_name
+                    updated = True
+
+                if old_name in tx.participants:
+                    tx.participants = [new_name if p == old_name else p for p in tx.participants]
+                    updated = True
+
+                if updated:
+                    if isinstance(tx.strategy, ExactSplitStrategy):
+                        tx.strategy.amounts = {
+                            (new_name if participant == old_name else participant): amount
+                            for participant, amount in tx.strategy.amounts.items()
+                        }
+                    tx.shares = tx.strategy.calculate_shares(tx.amount, tx.participants)
+
+            elif isinstance(tx, Transfer):
+                if tx.sender == old_name:
+                    tx.sender = new_name
+                    updated = True
+                if tx.receiver == old_name:
+                    tx.receiver = new_name
+                    updated = True
+
+            if updated:
+                return CSVAdapter.transaction_to_csv_row(tx)
+            return None
+
+        changed = self.repository.rewrite_group_events(self.group_id, transform)
+
+        if old_name in self.settings.members:
+            self.settings.members = [new_name if member == old_name else member for member in self.settings.members]
+            self.save_settings()
+
+        if self.current_user_id == old_name:
+            self.current_user_id = new_name
+
+        self.ledger = Ledger(self.settings)
+        self.refresh()
+        return changed
 
     def switch_group(self, new_group_id: str):
         """Switches the active group and reloads data."""

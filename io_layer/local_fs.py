@@ -1,6 +1,6 @@
 import os
 import json
-from typing import List
+from typing import List, Optional, Callable
 from .repository import TransactionRepository
 from core.engine import AuthProvider, UserSession
 
@@ -66,6 +66,37 @@ class LocalFileSystemIO(TransactionRepository):
             except Exception:
                 return {}
         return {}
+
+    def rewrite_group_events(self, group_id: str, transform: Callable[[str], Optional[str]]) -> bool:
+        group_dir = self._get_group_dir(group_id)
+        rewritten = False
+        for filename in os.listdir(group_dir):
+            if filename.startswith("events_") and filename.endswith(".csv"):
+                file_path = os.path.join(group_dir, filename)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+
+                new_lines = []
+                file_changed = False
+                for line in lines:
+                    stripped = line.strip()
+                    if not stripped:
+                        new_lines.append(line)
+                        continue
+
+                    replacement = transform(stripped)
+                    if replacement is not None and replacement != stripped:
+                        new_lines.append(replacement + "\n")
+                        file_changed = True
+                    else:
+                        new_lines.append(line)
+
+                if file_changed:
+                    rewritten = True
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.writelines(new_lines)
+
+        return rewritten
 
     def list_groups(self) -> List[str]:
         groups = []

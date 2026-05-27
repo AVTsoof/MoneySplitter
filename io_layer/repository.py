@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Dict, Callable, Optional
 
 class TransactionRepository(ABC):
     """
@@ -63,6 +63,15 @@ class TransactionRepository(ABC):
     def get_group_settings(self, group_id: str) -> dict:
         """
         Retrieves the settings for a specific group.
+        """
+        pass
+
+    @abstractmethod
+    def rewrite_group_events(self, group_id: str, transform: Callable[[str], Optional[str]]) -> bool:
+        """
+        Applies a transformation to every raw event row in the group's event files.
+        The transform function receives the raw CSV row string and should return
+        a replacement string if the row should be rewritten, or None to leave it unchanged.
         """
         pass
 

@@ -161,9 +161,9 @@ class DialogManager:
         
         col_d, col_t = st.columns(2)
         with col_d:
-            bill_date = st.date_input("Date", value=date.today())
+            bill_date = st.date_input("Date", value=date.today(), key="add_bill_date")
         with col_t:
-            bill_time = st.time_input("Time", value=datetime.now().time())
+            bill_time = st.time_input("Time", value=datetime.now().time(), key="add_bill_time")
         
         is_valid = description.strip() != "" and amount > 0 and len(participants) > 0
         if split_method == SplitMethod.UNEQUALLY.value:
@@ -216,9 +216,9 @@ class DialogManager:
         
         col_d, col_t = st.columns(2)
         with col_d:
-            transfer_date = st.date_input("Date", value=date.today())
+            transfer_date = st.date_input("Date", value=date.today(), key="add_transfer_date")
         with col_t:
-            transfer_time = st.time_input("Time", value=datetime.now().time())
+            transfer_time = st.time_input("Time", value=datetime.now().time(), key="add_transfer_time")
         
         is_valid = amount > 0 and sender != receiver
         
@@ -600,14 +600,83 @@ class MainAppTabs:
         repo = st.session_state.repo
         
         with st.expander("👥 Members", expanded=False):
-            new_user = st.text_input("Add new member")
-            if st.button("Add Member"):
-                if new_user and new_user not in bridge.settings.members:
-                    bridge.settings.members.append(new_user)
+            if "member_edit_index" not in st.session_state:
+                st.session_state["member_edit_index"] = None
+            if "member_edit_input" not in st.session_state:
+                st.session_state["member_edit_input"] = ""
+
+            new_user = st.text_input("Add new member", key="new_member_name")
+            if st.button("Add Member", type="primary"):
+                candidate = new_user.strip()
+                if not candidate:
+                    st.warning("Please enter a valid member name.")
+                elif any(candidate.lower() == existing.strip().lower() for existing in bridge.settings.members):
+                    st.warning(f"{candidate} is already in the member list.")
+                else:
+                    bridge.settings.members.append(candidate)
                     bridge.save_settings()
-                    st.success(f"Added {new_user}")
+                    st.success(f"Added {candidate}")
                     st.rerun()
-            st.write("Current members:", ", ".join(bridge.settings.members))
+
+            if bridge.settings.members:
+                st.write("Current members:")
+                member_has_tx = {
+                    member: bridge.member_has_transactions(member)
+                    for member in bridge.settings.members
+                }
+
+                for idx, member in enumerate(bridge.settings.members):
+                    cols = st.columns([4, 1, 1])
+                    cols[0].write(member)
+
+                    if cols[1].button("Remove", key=f"remove_member_{idx}"):
+                        if member_has_tx[member]:
+                            st.warning(f"Cannot remove {member}: this member appears in existing transactions.")
+                        else:
+                            bridge.settings.members.pop(idx)
+                            bridge.save_settings()
+                            st.success(f"Removed {member}")
+                            st.rerun()
+
+                    if cols[2].button("Edit", key=f"edit_member_{idx}"):
+                        st.session_state["member_edit_index"] = idx
+                        st.session_state["member_edit_input"] = member
+                        st.rerun()
+
+                if st.session_state["member_edit_index"] is not None and 0 <= st.session_state["member_edit_index"] < len(bridge.settings.members):
+                    edit_idx = st.session_state["member_edit_index"]
+                    st.markdown("---")
+                    st.write(f"Edit member: **{bridge.settings.members[edit_idx]}**")
+                    edit_name = st.text_input("New name", value=st.session_state["member_edit_input"], key="edit_member_name")
+
+                    col_save, col_cancel = st.columns([1, 1])
+                    if col_save.button("Save rename", type="primary"):
+                        candidate = edit_name.strip()
+                        current_member = bridge.settings.members[edit_idx]
+                        duplicate = any(
+                            candidate.lower() == existing.lower()
+                            for i, existing in enumerate(bridge.settings.members)
+                            if i != edit_idx
+                        )
+                        if not candidate:
+                            st.warning("Please enter a valid new name.")
+                        elif duplicate:
+                            st.warning(f"{candidate} is already in the member list.")
+                        else:
+                            bridge.rename_member(current_member, candidate)
+                            if st.session_state.get(UIStateKeys.CURRENT_USER) == current_member:
+                                st.session_state[UIStateKeys.CURRENT_USER] = candidate
+                            st.success(f"Renamed {current_member} to {candidate}")
+                            st.session_state["member_edit_index"] = None
+                            st.session_state["member_edit_input"] = ""
+                            st.rerun()
+
+                    if col_cancel.button("Cancel"):
+                        st.session_state["member_edit_index"] = None
+                        st.session_state["member_edit_input"] = ""
+                        st.rerun()
+            else:
+                st.info("No members found. Add a member to begin.")
 
         with st.expander("💱 Currencies", expanded=False):
             all_options = get_supported_currency_codes()
