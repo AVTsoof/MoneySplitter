@@ -191,7 +191,7 @@ class PDFReportGenerator(FPDF):
         transactions_sorted = sorted(transactions, key=lambda x: x.timestamp, reverse=True)
         
         dc_label = default_currency or "default"
-        headers = ["Type", "Description", "From", "To/Payer", "Amount", "Currency", f"Amount ({dc_label})"]
+        headers = ["Type", "Description", "Paid/From", "For/To", "Amount", "Currency", f"Amount ({dc_label})"]
         
         for date_key, group in groupby(transactions_sorted, key=lambda x: x.timestamp.date()):
             group_list = list(group)
@@ -266,7 +266,7 @@ class PDFReportGenerator(FPDF):
             return
         
         symbol = f"{currency} "
-        headers = ["From", "To", "Amount", f"Amount ({currency})"]
+        headers = ["From", "To", f"Amount ({currency})"]
         rows = []
         
         for debt in simplified_debts:
@@ -278,11 +278,10 @@ class PDFReportGenerator(FPDF):
             rows.append([
                 debt.get('from', ''),
                 debt.get('to', ''),
-                f"{symbol}{amt_str}",
                 amt_str
             ])
         
-        self.add_data_table(headers, rows, col_widths=[52, 52, 48, 38])
+        self.add_data_table(headers, rows, col_widths=[63, 63, 64])
     
     def add_exchange_rates_section(
         self,
