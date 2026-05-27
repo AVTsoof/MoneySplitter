@@ -10,7 +10,8 @@ import streamlit_agraph as sa
 
 from core.engine import Ledger, Expense, EqualSplitStrategy, DebtSimplifier, GroupSettings, Transfer, ExactSplitStrategy, CurrencyConverter, UserSession
 from core.types import SplitMethod
-from core.constants import CURRENCY_SYMBOLS, get_currency_symbol
+from core.constants import get_currency_symbol
+from core.currency_data import get_supported_currency_codes
 from io_layer.local_fs import LocalFileSystemIO, LocalFSAuthProvider
 from bridge.orchestrator import Bridge
 from config.app_config import load_config, save_config, get_default_data_dir
@@ -104,7 +105,9 @@ class DialogManager:
         group_name = st.text_input("Group Name (Folder Name)")
         default_members = session.logged_in_user
         member_names = st.text_input("Members (comma separated)", value=default_members, placeholder="Alice, Bob, Charlie")
-        default_currency = st.selectbox("Default Currency", list(CURRENCY_SYMBOLS.keys()), index=0)
+        supported_currencies = get_supported_currency_codes()
+        default_index = supported_currencies.index("USD") if "USD" in supported_currencies else 0
+        default_currency = st.selectbox("Default Currency", supported_currencies, index=default_index)
 
         if st.button("Create", type="primary"):
             if group_name and member_names:
@@ -492,7 +495,8 @@ class MainAppTabs:
         ledger = st.session_state.bridge.ledger
         
         selected_curr = render_currency_selector("Select Settlement Currency", key="details_curr")
-        exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in CURRENCY_SYMBOLS.keys()}
+        currency_codes = set(ledger.get_net_balances().keys()) | {selected_curr}
+        exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in currency_codes}
         unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
         
         if not unified_balances or not any(abs(v) > Decimal('0.001') for v in unified_balances.values()):
@@ -524,7 +528,8 @@ class MainAppTabs:
         ledger = st.session_state.bridge.ledger
         
         selected_curr = render_currency_selector("Select Currency for Map", key="map_curr")
-        exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in CURRENCY_SYMBOLS.keys()}
+        currency_codes = set(ledger.get_net_balances().keys()) | {selected_curr}
+        exchange_rates = {curr: get_exchange_rate(curr, selected_curr) for curr in currency_codes}
         unified_balances = ledger.get_unified_balances(selected_curr, exchange_rates)
         
         simplified = DebtSimplifier.simplify({selected_curr: unified_balances}).get(selected_curr, [])
@@ -605,7 +610,12 @@ class MainAppTabs:
             st.write("Current members:", ", ".join(bridge.settings.members))
 
         with st.expander("💱 Currencies", expanded=False):
-            all_options = list(CURRENCY_SYMBOLS.keys())
+            all_options = get_supported_currency_codes()
+            for currency in bridge.settings.active_currencies:
+                if currency not in all_options:
+                    all_options.append(currency)
+            all_options = sorted(all_options)
+
             active = st.multiselect("Active Currencies", all_options, default=list(bridge.settings.active_currencies))
             idx = active.index(bridge.settings.default_currency) if bridge.settings.default_currency in active else 0
             default = st.selectbox("Default Currency", active, index=idx)

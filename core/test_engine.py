@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from engine import EqualSplitStrategy, PercentageSplitStrategy, ExactSplitStrategy, Expense, Ledger, Transfer
+from core.engine import EqualSplitStrategy, PercentageSplitStrategy, ExactSplitStrategy, Expense, Ledger, Transfer
 
 class TestMoneySplitter(unittest.TestCase):
     def test_equal_split_no_residue(self):
@@ -131,7 +131,7 @@ class TestMoneySplitter(unittest.TestCase):
         self.assertEqual(unified["B"], Decimal("0.50"))
 
     def test_debt_simplification(self):
-        from engine import DebtSimplifier
+        from core.engine import DebtSimplifier
         # A owes B 10, B owes C 10
         # Result should be: A owes C 10
         balances = {"USD": {

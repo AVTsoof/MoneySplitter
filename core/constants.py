@@ -3,11 +3,7 @@ from typing import Dict
 CURRENCY_SYMBOLS: Dict[str, str] = {
     'USD': '$',
     'EUR': '€',
-    'GBP': '£',
     'ILS': '₪',
-    'JPY': '¥',
-    'CAD': 'C$',
-    'AUD': 'A$',
 }
 
 def get_currency_symbol(currency_code: str) -> str:
