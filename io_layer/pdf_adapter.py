@@ -1,18 +1,40 @@
+import re
+from pathlib import Path
 from fpdf import FPDF
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Dict, Any
 from core.constants import get_currency_symbol
 
+FONTS_DIR = Path(__file__).resolve().parents[1] / "data" / "fonts"
+DEJAVU_REGULAR = FONTS_DIR / "DejaVuSans.ttf"
+DEJAVU_BOLD = FONTS_DIR / "DejaVuSans-Bold.ttf"
+
+HEBREW_OR_RTL_REGEX = re.compile(r'[\u0590-\u05fe\u0600-\u06ff\u0750-\u077f\ufb50-\ufdff\ufe70-\ufeff]')
+
+
+def format_bidi(text: Any) -> Any:
+    """Reorders bidirectional text (such as Hebrew or Arabic) for proper visual rendering in LTR cells."""
+    if not text or not isinstance(text, str):
+        return text
+    if not HEBREW_OR_RTL_REGEX.search(text):
+        return text
+    try:
+        from fpdf.bidi import BidiParagraph
+        return BidiParagraph(text).get_reordered_string()
+    except Exception:
+        return text
+
 
 class PDFReportGenerator(FPDF):
     """
     Generates professional PDF reports for MoneySplitter groups.
-    Inherits from FPDF to provide PDF generation with custom styling.
+    Inherits from FPDF to provide PDF generation with custom styling and Unicode/Hebrew support.
     """
     
     def __init__(self, group_name: str, members: List[str], title: str = "MoneySplitter Report"):
         super().__init__(orientation='P', unit='mm', format='A4')
+        self.app_font = self._init_fonts()
         self.group_name = group_name
         self.members = members
         self.title = title
@@ -20,13 +42,51 @@ class PDFReportGenerator(FPDF):
         self.set_auto_page_break(auto=True, margin=15)
         self.add_page()
         self._add_title_page()
+
+    def _init_fonts(self) -> str:
+        """Register Unicode font (DejaVu Sans) if available, with style fallbacks."""
+        if DEJAVU_REGULAR.exists():
+            self.add_font("DejaVu", "", str(DEJAVU_REGULAR))
+            self.add_font("DejaVu", "I", str(DEJAVU_REGULAR))
+            if DEJAVU_BOLD.exists():
+                self.add_font("DejaVu", "B", str(DEJAVU_BOLD))
+                self.add_font("DejaVu", "BI", str(DEJAVU_BOLD))
+            else:
+                self.add_font("DejaVu", "B", str(DEJAVU_REGULAR))
+                self.add_font("DejaVu", "BI", str(DEJAVU_REGULAR))
+            return "DejaVu"
+        return "Helvetica"
+
+    def cell(self, *args, **kwargs):
+        """Override cell to automatically handle RTL / Hebrew text."""
+        if "text" in kwargs:
+            kwargs["text"] = format_bidi(kwargs["text"])
+        elif "txt" in kwargs:
+            kwargs["txt"] = format_bidi(kwargs["txt"])
+        elif len(args) >= 3:
+            args = list(args)
+            args[2] = format_bidi(args[2])
+            args = tuple(args)
+        return super().cell(*args, **kwargs)
+
+    def multi_cell(self, *args, **kwargs):
+        """Override multi_cell to automatically handle RTL / Hebrew text."""
+        if "text" in kwargs:
+            kwargs["text"] = format_bidi(kwargs["text"])
+        elif "txt" in kwargs:
+            kwargs["txt"] = format_bidi(kwargs["txt"])
+        elif len(args) >= 3:
+            args = list(args)
+            args[2] = format_bidi(args[2])
+            args = tuple(args)
+        return super().multi_cell(*args, **kwargs)
     
     def _add_title_page(self):
         """Add the title page with group information."""
-        self.set_font("Helvetica", "B", 28)
+        self.set_font(self.app_font, "B", 28)
         self.cell(0, 15, self.title, ln=True, align="C")
         
-        self.set_font("Helvetica", "", 12)
+        self.set_font(self.app_font, "", 12)
         self.ln(10)
         self.cell(0, 8, f"Group: {self.group_name}", ln=True, align="C")
         self.cell(0, 8, f"Members: {', '.join(self.members)}", ln=True, align="C")
@@ -38,21 +98,21 @@ class PDFReportGenerator(FPDF):
     def add_section_header(self, title: str):
         """Add a section header, always starting on a new page."""
         self.add_page()
-        self.set_font("Helvetica", "B", 16)
+        self.set_font(self.app_font, "B", 16)
         self.set_text_color(33, 81, 158)  # Dark blue
         self.cell(0, 12, title, ln=True)
         self.set_text_color(0, 0, 0)  # Reset to black
-        self.set_font("Helvetica", "", 11)
+        self.set_font(self.app_font, "", 11)
         self.ln(3)
     
     def add_subsection_header(self, title: str):
         """Add a subsection header."""
         self.ln(5)
-        self.set_font("Helvetica", "B", 13)
+        self.set_font(self.app_font, "B", 13)
         self.set_text_color(70, 130, 180)  # Steel blue
         self.cell(0, 10, title, ln=True)
         self.set_text_color(0, 0, 0)
-        self.set_font("Helvetica", "", 11)
+        self.set_font(self.app_font, "", 11)
     
     def _calc_row_height(self, row: List[str], col_widths: List[int], line_height: float = 6.0) -> float:
         """
@@ -87,7 +147,7 @@ class PDFReportGenerator(FPDF):
             col_widths = [190 // len(headers)] * len(headers)
         
         # Header row
-        self.set_font("Helvetica", "B", 10)
+        self.set_font(self.app_font, "B", 10)
         self.set_fill_color(33, 81, 158)  # Dark blue background
         self.set_text_color(255, 255, 255)  # White text
         
@@ -96,7 +156,7 @@ class PDFReportGenerator(FPDF):
         self.ln()
         
         # Data rows
-        self.set_font("Helvetica", "", 10)
+        self.set_font(self.app_font, "", 10)
         self.set_text_color(0, 0, 0)
         
         for row_idx, row in enumerate(rows):
@@ -107,13 +167,13 @@ class PDFReportGenerator(FPDF):
             # re-draw the header row so the table is readable.
             if self.get_y() + row_h > self.page_break_trigger:
                 self.add_page()
-                self.set_font("Helvetica", "B", 10)
+                self.set_font(self.app_font, "B", 10)
                 self.set_fill_color(33, 81, 158)
                 self.set_text_color(255, 255, 255)
                 for header, width in zip(headers, col_widths):
                     self.cell(width, 8, header, border=1, align="C", fill=True)
                 self.ln()
-                self.set_font("Helvetica", "", 10)
+                self.set_font(self.app_font, "", 10)
                 self.set_text_color(0, 0, 0)
 
             if row_idx % 2 == 0:
@@ -141,13 +201,13 @@ class PDFReportGenerator(FPDF):
     
     def add_text_info(self, label: str, value: str, bold_value: bool = False):
         """Add a label-value pair (e.g., 'Balance: $100.00')."""
-        self.set_font("Helvetica", "B", 11)
+        self.set_font(self.app_font, "B", 11)
         self.cell(60, 8, label)
         
         if bold_value:
-            self.set_font("Helvetica", "B", 11)
+            self.set_font(self.app_font, "B", 11)
         else:
-            self.set_font("Helvetica", "", 11)
+            self.set_font(self.app_font, "", 11)
         self.cell(0, 8, value, ln=True)
     
     def _convert_to_default(self, amount: Decimal, currency: str, default_currency: str, exchange_rates: dict) -> str:
@@ -180,7 +240,7 @@ class PDFReportGenerator(FPDF):
         self.add_section_header("Transaction History")
         
         if not transactions:
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.cell(0, 8, "No transactions recorded.", ln=True)
             return
         
@@ -233,7 +293,7 @@ class PDFReportGenerator(FPDF):
         self.ln(3)
         
         if not balances or not any(abs(v) > Decimal('0.001') for v in balances.values()):
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.set_text_color(40, 167, 69)  # Green
             self.cell(0, 8, "Everyone is settled up!", ln=True)
             self.set_text_color(0, 0, 0)
@@ -261,7 +321,7 @@ class PDFReportGenerator(FPDF):
         self.ln(3)
         
         if not simplified_debts:
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.cell(0, 8, "No active debts.", ln=True)
             return
         
@@ -299,14 +359,14 @@ class PDFReportGenerator(FPDF):
         self.add_section_header("Exchange Rates")
         
         if not rates or 'rates' not in rates:
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.cell(0, 8, "No exchange rate data available.", ln=True)
             return
         
         rates_dict = rates.get('rates', {})
         
         if not rates_dict:
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.cell(0, 8, "No exchange rate data available.", ln=True)
             return
 
@@ -353,7 +413,7 @@ class PDFReportGenerator(FPDF):
         if rows:
             self.add_data_table(headers, rows, col_widths=[95, 95])
         else:
-            self.set_font("Helvetica", "I", 11)
+            self.set_font(self.app_font, "I", 11)
             self.cell(0, 8, "No exchange rate data available for the active currencies.", ln=True)
     
     def add_settings_summary_section(self, settings: Dict[str, Any]):

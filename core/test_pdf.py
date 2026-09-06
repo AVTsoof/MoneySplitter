@@ -63,5 +63,62 @@ class TestPDFReportGenerator(unittest.TestCase):
         pdf_bytes = pdf.generate_pdf_bytes()
         self.assertGreater(len(pdf_bytes), 0)
 
+    def test_pdf_generation_hebrew_unicode(self):
+        # Hebrew group name, members, and transactions (including the letter 'ת')
+        group_name = "טיול לצפון"
+        members = ["דני", "תמר", "יוסי"]
+        
+        pdf = PDFReportGenerator(group_name, members)
+        
+        txs = [
+            Expense(
+                id="1",
+                payer="תמר",
+                total_amount=Decimal("120.00"),
+                participants=["דני", "תמר", "יוסי"],
+                description="קניות בסופר (כולל תבלינים)",
+                strategy=EqualSplitStrategy(),
+                currency="ILS",
+                timestamp=datetime(2026, 5, 25, 10, 0)
+            ),
+            Expense(
+                id="2",
+                payer="דני",
+                total_amount=Decimal("45.00"),
+                participants=["תמר", "דני"],
+                description="ארוחת צהריים",
+                strategy=EqualSplitStrategy(),
+                currency="ILS",
+                timestamp=datetime(2026, 5, 25, 13, 0)
+            )
+        ]
+        
+        pdf.add_transactions_section(txs, default_currency="ILS")
+        
+        balances = {"תמר": Decimal("57.50"), "דני": Decimal("-12.50"), "יוסי": Decimal("-45.00")}
+        pdf.add_balances_section(balances, "ILS")
+        
+        simplified_debts = [
+            {"from": "דני", "to": "תמר", "amount": "12.50"},
+            {"from": "יוסי", "to": "תמר", "amount": "45.00"}
+        ]
+        pdf.add_settlements_section(simplified_debts, "ILS")
+        
+        exchange_rates = {
+            "timestamp": datetime.now().timestamp(),
+            "rates": {"EUR": 0.92, "ILS": 3.75, "USD": 1.0}
+        }
+        pdf.add_exchange_rates_section(exchange_rates, active_currencies=["USD", "ILS"], default_currency="ILS")
+        
+        settings_dict = {
+            "name": group_name,
+            "default_currency": "ILS",
+            "active_currencies": ["USD", "ILS"]
+        }
+        pdf.add_settings_summary_section(settings_dict)
+        
+        pdf_bytes = pdf.generate_pdf_bytes()
+        self.assertGreater(len(pdf_bytes), 0)
+
 if __name__ == '__main__':
     unittest.main()
