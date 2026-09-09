@@ -1,10 +1,118 @@
 import { calculateShares } from '../core/splitStrategies'
 import type { SplitStrategy } from '../core/types'
 import { db } from './db'
+import exampleGroup from './seed/exampleGroup.json'
 import type { Group, GroupMember, TransactionRow, TransactionShare, Uuid } from './schema'
 
 const now = () => new Date().toISOString()
 const newId = () => crypto.randomUUID()
+const exampleGroupId = '2ba7fcb7-4d24-4419-acf2-8a7a529bfdf8'
+
+type ExampleTransaction = {
+  id: Uuid
+  payer?: string
+  sender?: string
+  receiver?: string
+  total_amount?: string
+  amount?: string
+  currency: string
+  description: string
+  shares?: Record<string, string>
+  strategy?: { type: 'equal' } | { type: 'exact'; amounts: Record<string, number> }
+  timestamp: string
+}
+
+const memberIdFor = (index: number) =>
+  `2ba7fcb7-4d24-4419-acf2-${index.toString().padStart(12, '0')}`
+const toTimestamp = (timestamp: string) => new Date(`${timestamp}Z`).toISOString()
+const toSeedStrategy = (
+  strategy: ExampleTransaction['strategy'],
+  memberIds: Map<string, Uuid>,
+): SplitStrategy | null => {
+  if (!strategy) return null
+  if (strategy.type === 'equal') return strategy
+  return {
+    type: 'exact',
+    amounts: Object.fromEntries(
+      Object.entries(strategy.amounts).map(([name, amount]) => [
+        memberIds.get(name)!,
+        String(amount),
+      ]),
+    ),
+  }
+}
+
+/** Adds the checked-in Italy trip fixture once, preserving its historical rows. */
+export async function seedExampleGroup(): Promise<Uuid> {
+  if (await db.groups.get(exampleGroupId)) return exampleGroupId
+
+  const timestamp = now()
+  const memberIds = new Map(
+    exampleGroup.settings.members.map((name, index) => [name, memberIdFor(index + 1)]),
+  )
+  const transactions = exampleGroup.transactions as ExampleTransaction[]
+
+  await db.transaction(
+    'rw',
+    db.groups,
+    db.groupMembers,
+    db.transactions,
+    db.transactionShares,
+    async () => {
+      if (await db.groups.get(exampleGroupId)) return
+
+      await db.groups.add({
+        id: exampleGroupId,
+        name: exampleGroup.settings.name,
+        defaultCurrency: exampleGroup.settings.default_currency,
+        activeCurrencies: exampleGroup.settings.active_currencies,
+        createdBy: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        deletedAt: null,
+      })
+      await db.groupMembers.bulkAdd(
+        exampleGroup.settings.members.map((displayName, index) => ({
+          id: memberIdFor(index + 1),
+          groupId: exampleGroupId,
+          displayName,
+          userId: null,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        })),
+      )
+      await db.transactions.bulkAdd(
+        transactions.map((transaction) => ({
+          id: transaction.id,
+          groupId: exampleGroupId,
+          type: transaction.payer ? 'expense' : 'transfer',
+          amount: transaction.total_amount ?? transaction.amount!,
+          currency: transaction.currency,
+          description: transaction.description,
+          occurredAt: toTimestamp(transaction.timestamp),
+          payerMemberId: transaction.payer ? memberIds.get(transaction.payer)! : null,
+          senderMemberId: transaction.sender ? memberIds.get(transaction.sender)! : null,
+          receiverMemberId: transaction.receiver ? memberIds.get(transaction.receiver)! : null,
+          splitStrategy: toSeedStrategy(transaction.strategy, memberIds),
+          createdBy: null,
+          createdAt: toTimestamp(transaction.timestamp),
+          updatedAt: toTimestamp(transaction.timestamp),
+          deletedAt: null,
+        })),
+      )
+      await db.transactionShares.bulkAdd(
+        transactions.flatMap((transaction) =>
+          Object.entries(transaction.shares ?? {}).map(([name, amount]) => ({
+            transactionId: transaction.id,
+            memberId: memberIds.get(name)!,
+            amount: Number(amount).toFixed(2),
+          })),
+        ),
+      )
+    },
+  )
+  return exampleGroupId
+}
 
 export type NewGroup = {
   id?: Uuid

@@ -21,6 +21,24 @@ beforeEach(async () => {
 })
 
 describe('groups', () => {
+  it('seeds the example trip once with its members and transactions', async () => {
+    const firstGroupId = await repo.seedExampleGroup()
+    const members = await repo.getMembers(firstGroupId)
+    const transactions = await repo.getTransactions(firstGroupId)
+
+    expect((await repo.getGroup(firstGroupId))?.name).toBe('Example Italy Trip')
+    expect(members.map((member) => member.displayName)).toEqual([
+      'Alice',
+      'Ariel',
+      'Bob',
+      'Charlie',
+      'David',
+    ])
+    expect(transactions).toHaveLength(34)
+    expect(await repo.seedExampleGroup()).toBe(firstGroupId)
+    expect(await repo.listGroups()).toHaveLength(1)
+  })
+
   it('creates a group with its members', async () => {
     const ids = await seedGroup()
     const group = await repo.getGroup(groupId)

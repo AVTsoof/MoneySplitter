@@ -1,0 +1,657 @@
+{
+  "settings": {
+    "name": "Example Italy Trip",
+    "default_currency": "EUR",
+    "active_currencies": ["EUR", "USD"],
+    "members": ["Alice", "Ariel", "Bob", "Charlie", "David"]
+  },
+  "transactions": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "payer": "Alice",
+      "total_amount": "70.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Leonardo Express train \u2013 Fiumicino to Roma Termini",
+      "shares": {
+        "Alice": "14.0",
+        "Ariel": "14.0",
+        "Bob": "14.0",
+        "Charlie": "14.0",
+        "David": "14.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-05T10:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "payer": "Bob",
+      "total_amount": "640.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Hotel check-in \u2013 2 nights (Rome)",
+      "shares": {
+        "Alice": "128.0",
+        "Ariel": "128.0",
+        "Bob": "128.0",
+        "Charlie": "128.0",
+        "David": "128.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-05T15:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "payer": "Ariel",
+      "total_amount": "165.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Welcome dinner \u2013 Trattoria da Enzo al 29",
+      "shares": {
+        "Alice": "33.0",
+        "Ariel": "33.0",
+        "Bob": "33.0",
+        "Charlie": "33.0",
+        "David": "33.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-05T20:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "payer": "Charlie",
+      "total_amount": "110.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Colosseum + Roman Forum tickets",
+      "shares": {
+        "Alice": "22.0",
+        "Ariel": "22.0",
+        "Bob": "22.0",
+        "Charlie": "22.0",
+        "David": "22.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-06T09:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "payer": "David",
+      "total_amount": "22.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Gelato at Giolitti",
+      "shares": {
+        "Alice": "4.4",
+        "Ariel": "4.4",
+        "Bob": "4.4",
+        "Charlie": "4.4",
+        "David": "4.4"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-06T11:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "payer": "Alice",
+      "total_amount": "138.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Lunch \u2013 Osteria der Belli (Trastevere)",
+      "shares": {
+        "Alice": "27.6",
+        "Ariel": "27.6",
+        "Bob": "27.6",
+        "Charlie": "27.6",
+        "David": "27.6"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-06T13:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "payer": "Bob",
+      "total_amount": "90.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob"],
+      "description": "Borghese Gallery tickets",
+      "shares": {
+        "Alice": "30.0",
+        "Ariel": "30.0",
+        "Bob": "30.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-06T15:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "payer": "Ariel",
+      "total_amount": "130.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Vatican Museums + Sistine Chapel tickets",
+      "shares": {
+        "Alice": "26.0",
+        "Ariel": "26.0",
+        "Bob": "26.0",
+        "Charlie": "26.0",
+        "David": "26.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-07T09:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "payer": "Charlie",
+      "total_amount": "40.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Vatican audio guide rental",
+      "shares": {
+        "Alice": "8.0",
+        "Ariel": "8.0",
+        "Bob": "8.0",
+        "Charlie": "8.0",
+        "David": "8.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-07T09:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "payer": "David",
+      "total_amount": "72.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Pizza al taglio \u2013 Pizzarium Bonci",
+      "shares": {
+        "Alice": "14.4",
+        "Ariel": "14.4",
+        "Bob": "14.4",
+        "Charlie": "14.4",
+        "David": "14.4"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-07T13:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "payer": "Alice",
+      "total_amount": "28.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Espresso & cornetti \u2013 Bar San Calisto",
+      "shares": {
+        "Alice": "5.6",
+        "Ariel": "5.6",
+        "Bob": "5.6",
+        "Charlie": "5.6",
+        "David": "5.6"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-07T16:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0012-4000-8000-000000000012",
+      "payer": "Bob",
+      "total_amount": "175.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Dinner \u2013 Il Sorpasso (Charlie had the Barolo)",
+      "shares": {
+        "Alice": "30.0",
+        "Ariel": "30.0",
+        "Bob": "30.0",
+        "Charlie": "55.0",
+        "David": "30.0"
+      },
+      "strategy": {
+        "type": "exact",
+        "amounts": {
+          "Alice": 30.0,
+          "Ariel": 30.0,
+          "Bob": 30.0,
+          "Charlie": 55.0,
+          "David": 30.0
+        }
+      },
+      "timestamp": "2025-07-07T20:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0013-4000-8000-000000000013",
+      "payer": "Ariel",
+      "total_amount": "185.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Frecciarossa train Rome to Florence",
+      "shares": {
+        "Alice": "35.0",
+        "Ariel": "35.0",
+        "Bob": "35.0",
+        "Charlie": "45.0",
+        "David": "35.0"
+      },
+      "strategy": {
+        "type": "exact",
+        "amounts": {
+          "Alice": 35.0,
+          "Ariel": 35.0,
+          "Bob": 35.0,
+          "Charlie": 45.0,
+          "David": 35.0
+        }
+      },
+      "timestamp": "2025-07-08T08:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0014-4000-8000-000000000014",
+      "payer": "Charlie",
+      "total_amount": "720.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Hotel \u2013 2 nights (Florence)",
+      "shares": {
+        "Alice": "144.0",
+        "Ariel": "144.0",
+        "Bob": "144.0",
+        "Charlie": "144.0",
+        "David": "144.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-08T14:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0015-4000-8000-000000000015",
+      "payer": "David",
+      "total_amount": "155.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Dinner \u2013 Buca Mario (Florence)",
+      "shares": {
+        "Alice": "31.0",
+        "Ariel": "31.0",
+        "Bob": "31.0",
+        "Charlie": "31.0",
+        "David": "31.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-08T20:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0016-4000-8000-000000000016",
+      "payer": "Alice",
+      "total_amount": "120.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Uffizi Gallery tickets",
+      "shares": {
+        "Alice": "24.0",
+        "Ariel": "24.0",
+        "Bob": "24.0",
+        "Charlie": "24.0",
+        "David": "24.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-09T09:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0017-4000-8000-000000000017",
+      "payer": "Bob",
+      "total_amount": "95.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Lunch at Mercato Centrale",
+      "shares": {
+        "Alice": "19.0",
+        "Ariel": "19.0",
+        "Bob": "19.0",
+        "Charlie": "19.0",
+        "David": "19.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-09T13:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0018-4000-8000-000000000018",
+      "payer": "Ariel",
+      "total_amount": "310.0",
+      "currency": "EUR",
+      "participants": ["Ariel", "Charlie", "David"],
+      "description": "Leather goods at Scuola del Cuoio",
+      "shares": {
+        "Ariel": "120.0",
+        "Charlie": "100.0",
+        "David": "90.0"
+      },
+      "strategy": {
+        "type": "exact",
+        "amounts": {
+          "Ariel": 120.0,
+          "Charlie": 100.0,
+          "David": 90.0
+        }
+      },
+      "timestamp": "2025-07-09T15:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0019-4000-8000-000000000019",
+      "sender": "Charlie",
+      "receiver": "Ariel",
+      "amount": "100.0",
+      "currency": "EUR",
+      "description": "Repayment \u2013 leather shop (Scuola del Cuoio)",
+      "timestamp": "2025-07-09T18:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0020-4000-8000-000000000020",
+      "payer": "Charlie",
+      "total_amount": "220.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Minibus rental \u2013 Tuscany day trip",
+      "shares": {
+        "Alice": "44.0",
+        "Ariel": "44.0",
+        "Bob": "44.0",
+        "Charlie": "44.0",
+        "David": "44.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-10T08:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0021-4000-8000-000000000021",
+      "payer": "David",
+      "total_amount": "150.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Chianti wine tasting \u2013 Castello di Verrazzano",
+      "shares": {
+        "Alice": "30.0",
+        "Ariel": "30.0",
+        "Bob": "30.0",
+        "Charlie": "30.0",
+        "David": "30.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-10T11:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0022-4000-8000-000000000022",
+      "payer": "Alice",
+      "total_amount": "190.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Agriturismo farm lunch near Siena",
+      "shares": {
+        "Alice": "38.0",
+        "Ariel": "38.0",
+        "Bob": "38.0",
+        "Charlie": "38.0",
+        "David": "38.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-10T13:30:00"
+    },
+    {
+      "id": "a1b2c3d4-0023-4000-8000-000000000023",
+      "payer": "Bob",
+      "total_amount": "160.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Frecciabianca train Florence to Venice",
+      "shares": {
+        "Alice": "32.0",
+        "Ariel": "32.0",
+        "Bob": "32.0",
+        "Charlie": "32.0",
+        "David": "32.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-11T09:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0024-4000-8000-000000000024",
+      "payer": "Ariel",
+      "total_amount": "860.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Hotel \u2013 2 nights (Venice)",
+      "shares": {
+        "Alice": "172.0",
+        "Ariel": "172.0",
+        "Bob": "172.0",
+        "Charlie": "172.0",
+        "David": "172.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-11T15:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0025-4000-8000-000000000025",
+      "payer": "Charlie",
+      "total_amount": "100.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie"],
+      "description": "Gondola ride on the Grand Canal",
+      "shares": {
+        "Alice": "25.0",
+        "Ariel": "25.0",
+        "Bob": "25.0",
+        "Charlie": "25.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-12T10:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0026-4000-8000-000000000026",
+      "payer": "David",
+      "total_amount": "105.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Doge's Palace + Bridge of Sighs tickets",
+      "shares": {
+        "Alice": "21.0",
+        "Ariel": "21.0",
+        "Bob": "21.0",
+        "Charlie": "21.0",
+        "David": "21.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-12T12:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0027-4000-8000-000000000027",
+      "payer": "Alice",
+      "total_amount": "115.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Cicchetti & Aperol Spritz \u2013 Bacaro Jazz",
+      "shares": {
+        "Alice": "23.0",
+        "Ariel": "23.0",
+        "Bob": "23.0",
+        "Charlie": "23.0",
+        "David": "23.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-12T14:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0028-4000-8000-000000000028",
+      "payer": "Bob",
+      "total_amount": "210.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Seafood dinner \u2013 Osteria alle Testiere",
+      "shares": {
+        "Alice": "42.0",
+        "Ariel": "42.0",
+        "Bob": "42.0",
+        "Charlie": "42.0",
+        "David": "42.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-12T20:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0029-4000-8000-000000000029",
+      "payer": "Ariel",
+      "total_amount": "80.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Murano glass-blowing demonstration + ferry",
+      "shares": {
+        "Alice": "16.0",
+        "Ariel": "16.0",
+        "Bob": "16.0",
+        "Charlie": "16.0",
+        "David": "16.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-13T10:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0030-4000-8000-000000000030",
+      "payer": "Charlie",
+      "total_amount": "240.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Murano glass souvenirs",
+      "shares": {
+        "Alice": "30.0",
+        "Ariel": "30.0",
+        "Bob": "30.0",
+        "Charlie": "80.0",
+        "David": "70.0"
+      },
+      "strategy": {
+        "type": "exact",
+        "amounts": {
+          "Alice": 30.0,
+          "Ariel": 30.0,
+          "Bob": 30.0,
+          "Charlie": 80.0,
+          "David": 70.0
+        }
+      },
+      "timestamp": "2025-07-13T12:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0031-4000-8000-000000000031",
+      "payer": "David",
+      "total_amount": "285.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Farewell dinner \u2013 Ristorante Quadri (Piazza San Marco)",
+      "shares": {
+        "Alice": "57.0",
+        "Ariel": "57.0",
+        "Bob": "57.0",
+        "Charlie": "57.0",
+        "David": "57.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-13T20:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0032-4000-8000-000000000032",
+      "payer": "Alice",
+      "total_amount": "140.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Water taxi to Marco Polo Airport",
+      "shares": {
+        "Alice": "28.0",
+        "Ariel": "28.0",
+        "Bob": "28.0",
+        "Charlie": "28.0",
+        "David": "28.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-14T07:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0033-4000-8000-000000000033",
+      "payer": "Bob",
+      "total_amount": "65.0",
+      "currency": "EUR",
+      "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+      "description": "Airport breakfast \u2013 Caffe Florian (VCE)",
+      "shares": {
+        "Alice": "13.0",
+        "Ariel": "13.0",
+        "Bob": "13.0",
+        "Charlie": "13.0",
+        "David": "13.0"
+      },
+      "strategy": {
+        "type": "equal"
+      },
+      "timestamp": "2025-07-14T09:00:00"
+    },
+    {
+      "id": "a1b2c3d4-0034-4000-8000-000000000034",
+      "sender": "Alice",
+      "receiver": "Bob",
+      "amount": "80.0",
+      "currency": "EUR",
+      "description": "Hotel deposit repayment",
+      "timestamp": "2025-07-14T10:00:00"
+    }
+  ]
+}
