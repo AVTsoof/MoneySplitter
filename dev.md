@@ -99,7 +99,7 @@ $$B_u = \sum_{i \in G} (P_i - S_i)$$
 
 ---
 
-### [IN PROGRESS] Phase 6: Decentralized Web Architecture & Drive Synchronization
+### [SUPERSEDED BY PHASE 12] Phase 6: Decentralized Web Architecture & Drive Synchronization
 
 **Objective:** Transition the application to a web-based, serverless architecture using Google Drive as the sole backend, with local CSV files functioning as the database.
 
@@ -152,7 +152,7 @@ To achieve transparent, behind-the-scenes synchronization between multiple users
 
 ---
 
-### [IN PROGRESS] Phase 7: Google OAuth 2.0 & Restricted Scopes
+### [SUPERSEDED BY PHASE 12] Phase 7: Google OAuth 2.0 & Restricted Scopes
 
 To enable login and file access, you will utilize **Google Identity Services (GIS)**. This allows you to treat the user’s Google Account as the unique identifier for the `events_user.csv` files.
 
@@ -165,7 +165,7 @@ To enable login and file access, you will utilize **Google Identity Services (GI
 
 ---
 
-### Phase 8: Zero-Cost Hosting Strategy
+### [SUPERSEDED BY PHASE 12] Phase 8: Zero-Cost Hosting Strategy
 
 Since this app is non-commercial and handles no payments, you can host it entirely for free using Python-specific hosting or generic cloud platforms.
 
@@ -179,7 +179,7 @@ Since this app is non-commercial and handles no payments, you can host it entire
 
 ---
 
-### [DONE] Phase 9: Technical Stack (UI Selection: Streamlit)
+### [SUPERSEDED BY PHASE 12] Phase 9: Technical Stack (UI Selection: Streamlit)
 
 **Decision Record:** Streamlit has been selected as the primary UI framework, replacing the legacy React/JavaScript implementation. This shift consolidates the entire stack into pure Python, significantly reducing architectural complexity and eliminating the need for a JS/Python bridge (Pyodide).
 
@@ -337,7 +337,11 @@ Instead of "Directed Acyclic Graph," the button for this page is labeled **"Show
 
 ---
 
-### [PENDING] Phase 11: Firebase Architecture & Firestore Integration (Alternative/Evolution)
+### [SUPERSEDED BY PHASE 12] Phase 11: Firebase Architecture & Firestore Integration
+
+Never implemented. Supabase was chosen instead: Postgres Row Level Security expresses
+group membership as a plain SQL predicate, whereas Firestore rules bill a document read
+for every `exists()` lookup and cannot be tested with a SQL test harness.
 
 **Objective:** Evaluate and potentially migrate to a Firebase-backed architecture for robust multi-tenant authentication, data modeling, and security.
 
@@ -430,3 +434,121 @@ To ensure scalability and maintainability, the application follows a **Decoupled
 
 ---
 
+
+---
+
+### [IN PROGRESS] Phase 12: Serverless PWA Migration (Supabase + React)
+
+**Objective:** Replace the Streamlit app with an offline-first React PWA backed by
+Supabase Postgres, and retire the Python runtime entirely.
+
+**Why this supersedes Phases 6-9 and 11.** Phases 6 and 7 built on Google Drive, where the
+per-user `events_{user}.csv` design existed for one reason: Drive cannot do atomic
+writes, so a single shared file would corrupt under concurrent edits. Postgres removes
+that constraint, which collapses three derived decisions at once:
+
+* Append-only event log -> normalised relational tables.
+* Client-side CSV merge and re-sort -> SQL plus Row Level Security.
+* CRDTs / vector clocks (Phase 5) -> unnecessary. A ledger is append-dominant and rows
+  carry client-generated UUIDs, so per-row last-write-wins loses nothing.
+
+Phase 9 chose Streamlit to avoid a JS bridge. That trade no longer holds: a real
+offline PWA needs a service worker and IndexedDB, which Streamlit cannot provide
+because every interaction round-trips to the Python server.
+
+#### Target stack
+
+| Layer | Choice |
+| --- | --- |
+| Frontend | React 19 + TypeScript + Vite 8 + Tailwind v4 |
+| Local store | Dexie (IndexedDB), source of truth for all reads and writes |
+| Cloud | Supabase Postgres + Auth, accessed directly with `@supabase/supabase-js` |
+| Authorisation | Postgres Row Level Security. No custom API server. |
+| Hosting | Cloudflare Workers static assets |
+| Engine | TypeScript port of `split-core`, running in the browser |
+
+#### Sequencing
+
+Stage A ships a fully working local-only app so the UI can be reviewed and restyled
+before any cloud work starts. Stage B adds sync. Stage C deploys and deletes Python.
+
+#### Stage A - local-only PWA (no Supabase, no auth)
+
+* [DONE] Scaffold Vite + React + TypeScript in `web/`
+* [DONE] Tailwind v4, Vitest, Testing Library, husky + lint-staged pre-commit gate
+* [DONE] Freeze golden fixtures from the Python engine (`scripts/dump_golden_fixtures.py`)
+* [DONE] Port split strategies (equal / exact / percentage) incl. residue handling
+* [DONE] Port ledger net balances and unified multi-currency balances
+* [DONE] Port debt simplifier (greedy match-up, per currency)
+* [DONE] Port currency conversion and the 157-currency registry
+* [DONE] Dexie schema shaped like the future Postgres tables
+* [DONE] Repository layer over Dexie - the UI's only data API
+* [TODO] Seed the example group on first run
+* [TODO] App shell: routing, mobile-first layout, bottom tab bar
+* [TODO] Transactions tab (list, add bill, add transfer, edit, delete, running balances)
+* [TODO] Balances + settlements tab
+* [TODO] Debt map tab (`@xyflow/react`)
+* [TODO] Rates tab
+* [TODO] Settings tab (members, currencies, delete group)
+* [TODO] Playwright specs for offline use and PWA install
+* [TODO] PDF report in-browser (`pdfmake` + `bidi-js` for RTL)
+* [TODO] Exchange rates from Frankfurter with a 24h cache
+
+**Stage A gate:** app fully usable at `localhost:5173`, reviewed and restyled before
+Stage B begins.
+
+#### Stage B - Supabase sync, auth, multi-device
+
+* [TODO] Postgres schema mirroring `web/src/data/schema.ts`
+* [TODO] pgTAP RLS suites (`supabase test db`)
+* [TODO] RLS policies and grants
+* [TODO] Supabase Auth (magic link)
+* [TODO] Group invite + member claim flow
+* [TODO] Outbox push with backoff and idempotent upsert
+* [TODO] Delta pull on `updated_at`, last-write-wins, Realtime subscription
+* [TODO] Shared exchange-rate cache table
+
+#### Stage C - deploy and decommission
+
+* [TODO] Cloudflare Workers deploy config
+* [TODO] Delete `app.py`, `bridge/`, `io_layer/`, `config/`, `core/*.py`, bootstrap scripts
+* [TODO] Rewrite root README, replace the Firebase architecture doc with a Supabase RLS doc
+
+#### Data model
+
+Normalised, with members as rows rather than free-text names:
+
+```
+profiles(id, display_name)
+groups(id, name, default_currency, active_currencies[], created_by, updated_at, deleted_at)
+group_members(id, group_id, display_name, user_id NULL, unique(group_id, display_name))
+transactions(id, group_id, type, amount numeric(18,2), currency, description, occurred_at,
+             payer_member_id, sender_member_id, receiver_member_id, split_strategy jsonb,
+             updated_at, deleted_at)
+transaction_shares(transaction_id, member_id, amount)
+exchange_rates(base, rates jsonb, fetched_at)
+group_invites(token, group_id, member_id, expires_at)
+```
+
+`group_members.user_id` is nullable so a guest who never signs up still works; an
+invited user claims their row later. Renaming a member becomes one `UPDATE` instead of
+rewriting every stored transaction, as the CSV implementation required.
+
+#### Invariants that must not regress
+
+* Every row carries a client-generated UUID, `updated_at`, and (where applicable)
+  `deleted_at`. Deletes are soft or sync cannot propagate them.
+* Balances still sum to exactly zero per currency after every transaction.
+* Decimal arithmetic mirrors Python's context (28 digits, HALF_EVEN) with an explicit
+  HALF_UP when rounding money to 2dp.
+
+#### Known RLS traps (verified against Supabase docs, Sep 2026)
+
+* A `group_members` policy that queries `group_members` raises `42P17 infinite
+  recursion`. Break the cycle with a `security definer` function returning
+  `setof uuid`, in a private unexposed schema, with `set search_path = ''`.
+* Since May 2026 new projects no longer auto-expose `public` tables to the Data API,
+  and this is enforced on existing projects from Oct 2026. Migrations must contain
+  explicit `grant` statements or `supabase-js` fails with `42501` before RLS runs.
+* Wrap helpers in `(select ...)` so the planner caches them per statement.
+* RLS is not a filter. Client queries must still scope by `group_id`.

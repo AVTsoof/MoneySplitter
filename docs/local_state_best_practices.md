@@ -1,5 +1,19 @@
 # Local State Best Practices in Streamlit Desktop Apps
 
+> **Scope: the Streamlit app only, which is being retired in Phase 12.**
+>
+> This describes filesystem-based state for a desktop Python app. None of it applies to
+> the web PWA in `web/`, which runs in a browser and has no filesystem access:
+>
+> | Concern | Streamlit (below) | Web PWA |
+> | --- | --- | --- |
+> | Group and transaction data | CSV under a data directory | IndexedDB via Dexie, synced to Supabase |
+> | Signed-in identity | `logged_in_user` in `app_config.json` | Supabase Auth session |
+> | Per-user preferences | `users/{name}_prefs.json` | `localStorage` |
+>
+> The one idea that does carry over is the split between installation-level state and
+> per-user preferences, and the rule that the UI never touches storage directly.
+
 When building a "Local-First" or desktop-oriented application using Streamlit, state persistence requires a different approach than traditional web applications. Because the application runs on the user's local machine, relying on browser `localStorage` or `cookies` is unnecessary and often brittle. Instead, state should be managed via the local filesystem using OS-standard paths.
 
 This document outlines the best practices for distinguishing between **App-Level Configuration** and **Per-User Preferences**.

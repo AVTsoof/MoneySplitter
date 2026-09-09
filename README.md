@@ -1,21 +1,34 @@
 # MoneySplitter
 
-The private, simple way to split bills with friends without a central database.
+The private, simple way to split bills with friends.
+
+> **Status: mid-migration.** The app is being rebuilt as an offline-first web PWA
+> backed by Supabase, replacing the Streamlit app and its local CSV storage. Both
+> versions live in this repo right now. See [dev.md](dev.md) Phase 12 for the
+> task list, and [web/README.md](web/README.md) to work on the new app.
+>
+> | | Streamlit app (current) | Web PWA (in progress) |
+> | --- | --- | --- |
+> | Location | repo root | `web/` |
+> | Run | `./run.sh` | `cd web && npm run dev` |
+> | Storage | local CSV files | IndexedDB, syncing to Supabase |
+> | Status | works, feature-complete | engine and data layer done, UI next |
 
 ## 🌟 Why MoneySplitter?
-- **Privacy First:** Your data stays in your Google Drive. We don't have a database.
-- **No Passwords:** Just sign in with your Google account.
-- **Smart Settle:** Our "Smart Settle" feature tells you exactly who needs to pay who in the fewest steps possible.
+- **Privacy First:** Your data is yours. Groups are readable only by their members.
+- **Works Offline:** Add a bill on a plane; it syncs when you land.
+- **Smart Settle:** Tells you exactly who needs to pay who in the fewest steps possible.
 
 ## 📖 How to Use
 
 ### 1. Sign In
-Simply tap the "Sign in with Google" button. The app will create a private folder in your Google Drive where it will safely store your bills.
+Pick your name, or sign in with a magic link once cloud sync lands. Nothing is
+shared outside your group.
 
 ### 2. Start a Group
-Create a group for your trip, dinner, or household utilities. 
-- Share the group with your friends using their Google emails.
-- The app automatically syncs everyone's bills behind the scenes.
+Create a group for your trip, dinner, or household utilities.
+- Add members by name. They don't need an account to be included in a bill.
+- Invite them later with a link to claim their spot.
 
 ### 3. Add a Bill
 Tapping the **(+)** button allows you to quickly log an expense:
@@ -31,14 +44,44 @@ Check **"The Bottom Line"** to see if you are owed money (Green) or owe money (O
 ## 💡 Simple Terms
 - **The Bottom Line:** The final amount you either owe or are owed.
 - **Smart Settle:** A tool that reduces the number of people you need to pay.
-- **Folder Access:** Allowing the app to save your bills privately to your own Google Drive.
 
 ---
 *Safe. Private. Simple.*
 
 ## 💻 Running Locally
 
-To run the app on your machine:
+### Web PWA (`web/`)
+
+Needs Node 22.12+.
+
+```bash
+cd web
+npm install
+npm run dev     # http://localhost:5173
+npm test        # run the suite
+```
+
+Full details, conventions and gotchas are in [web/README.md](web/README.md).
+
+### Streamlit app (repo root)
+
+Needs Python 3.10+.
+
 1. Setup the environment: `./bootstrap.sh`
-   - This script creates a Python virtual environment and installs the required packages from `requirements.txt`.
+   - Creates a virtual environment and installs `core/requirements.txt`.
 2. Run the app: `./run.sh`
+
+Windows: use `bootstrap.bat` and `run.bat`.
+
+## 🗺️ Where things live
+
+| Path | What it is |
+| --- | --- |
+| `web/` | The React PWA that will replace everything below |
+| `core/` | Python math engine: splitting, balances, debt simplification |
+| `io_layer/` | Python persistence: CSV, local filesystem, PDF |
+| `bridge/` | Python orchestrator between the engine and storage |
+| `app.py` | Streamlit UI |
+| `dev.md` | Phase-by-phase plan and task status |
+| `features.md` | What is implemented and what is pending |
+| `examples/` | A sample group used for demos and seeding |
