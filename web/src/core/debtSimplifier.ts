@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js'
+import { Decimal, to2dp } from './money'
 import type { Balances, MultiBalances } from './types'
 
 export type Settlement = { from: string; to: string; amount: string }
@@ -36,7 +36,7 @@ function simplifyOne(balances: Balances): Settlement[] {
     const debtor = takeLargest(debtors)
     const creditor = takeLargest(creditors)
     const amount = Math.min(debtor.value, creditor.value)
-    const rounded = new Decimal(amount).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    const rounded = to2dp(new Decimal(amount))
 
     if (rounded.greaterThan(0)) {
       settlements.push({ from: debtor.member, to: creditor.member, amount: rounded.toFixed(2) })

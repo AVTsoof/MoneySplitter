@@ -1,11 +1,5 @@
-import Decimal from 'decimal.js'
+import { CENT, Decimal, to2dp } from './money'
 import type { Shares, SplitStrategy } from './types'
-
-Decimal.set({ rounding: Decimal.ROUND_HALF_UP })
-
-const CENT = new Decimal('0.01')
-
-const to2dp = (value: Decimal) => value.toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
 
 function equalShares(total: Decimal, participants: string[]): Shares {
   const base = to2dp(total.dividedBy(participants.length))

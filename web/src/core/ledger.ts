@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js'
+import { Decimal, to2dp } from './money'
 import { applyToBalances } from './transactions'
 import type { Balances, MultiBalances, Transaction } from './types'
 
@@ -31,7 +31,7 @@ export function getUnifiedBalances(
     }
 
     for (const [member, balance] of Object.entries(balances)) {
-      const converted = balance.times(rate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+      const converted = to2dp(balance.times(rate))
       unified[member] = (unified[member] ?? new Decimal(0)).plus(converted)
     }
   }

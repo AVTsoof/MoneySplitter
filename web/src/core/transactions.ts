@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js'
+import { Decimal } from './money'
 import { calculateShares } from './splitStrategies'
 import type { Balances, Shares, Transaction } from './types'
 
