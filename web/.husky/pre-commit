@@ -1,0 +1,1 @@
+cd web && npx lint-staged && npx vitest related --run --passWithNoTests $(git diff --cached --name-only --diff-filter=ACMR | sed 's|^web/||')
