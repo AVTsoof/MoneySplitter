@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listGroups, seedExampleGroup } from './data/repository'
+import { TransactionsTab } from './features/transactions/TransactionsTab'
 import './App.css'
 
 const tabs = ['Transactions', 'Balances', 'Settle Up', 'Map', 'Rates', 'Settings'] as const
@@ -58,11 +59,13 @@ function App() {
         <section id="workspace-panel" className="workspace-panel" role="tabpanel">
           <p className="panel-kicker">{activeTab}</p>
           <h2>{activeTab}</h2>
-          <p>
-            {activeTab === 'Transactions'
-              ? 'Your trip ledger will appear here.'
-              : `${activeTab} for ${group.name} will appear here.`}
-          </p>
+          {activeTab === 'Transactions' ? (
+            <TransactionsTab groupId={group.id} />
+          ) : (
+            <p>
+              {activeTab} for {group.name} will appear here.
+            </p>
+          )}
         </section>
       </section>
     </main>

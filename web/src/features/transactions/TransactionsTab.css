@@ -1,0 +1,48 @@
+.transactions-tab {
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+.transaction-count {
+  margin: 0 0 12px;
+  color: #437063;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.transaction-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid #b7c5b5;
+}
+
+.transaction-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid #d4d8cd;
+}
+
+.transaction-description,
+.transaction-meta {
+  margin: 0;
+}
+
+.transaction-description {
+  color: #153c34;
+  font-weight: 700;
+}
+
+.transaction-meta {
+  margin-top: 5px;
+  color: #52635d;
+  font-size: 14px;
+}
+
+.transaction-row strong {
+  flex: 0 0 auto;
+  color: #153c34;
+  font-size: 15px;
+}
