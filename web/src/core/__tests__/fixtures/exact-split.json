@@ -1,0 +1,48 @@
+[
+  {
+    "name": "exact amounts",
+    "total": "30.00",
+    "participants": ["A", "B"],
+    "amounts": {
+      "A": "10.00",
+      "B": "20.00"
+    },
+    "expected": {
+      "A": "10.00",
+      "B": "20.00"
+    }
+  },
+  {
+    "name": "participant missing from amounts gets zero",
+    "total": "30.00",
+    "participants": ["A", "B", "C"],
+    "amounts": {
+      "A": "10.00",
+      "B": "20.00"
+    },
+    "expected": {
+      "A": "10.00",
+      "B": "20.00",
+      "C": "0"
+    }
+  },
+  {
+    "name": "example group dinner with one pricier share",
+    "total": "175.0",
+    "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+    "amounts": {
+      "Alice": "30.0",
+      "Ariel": "30.0",
+      "Bob": "30.0",
+      "Charlie": "55.0",
+      "David": "30.0"
+    },
+    "expected": {
+      "Alice": "30.0",
+      "Ariel": "30.0",
+      "Bob": "30.0",
+      "Charlie": "55.0",
+      "David": "30.0"
+    }
+  }
+]

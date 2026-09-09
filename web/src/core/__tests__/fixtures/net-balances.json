@@ -1,0 +1,115 @@
+[
+  {
+    "name": "single equal expense",
+    "transactions": [
+      {
+        "kind": "expense",
+        "id": "1",
+        "payer": "A",
+        "amount": "10.00",
+        "currency": "USD",
+        "participants": ["A", "B", "C"],
+        "strategy": {
+          "type": "equal"
+        }
+      }
+    ],
+    "expected": {
+      "USD": {
+        "A": "6.66",
+        "B": "-3.33",
+        "C": "-3.33"
+      }
+    }
+  },
+  {
+    "name": "transfer credits sender and debits receiver",
+    "transactions": [
+      {
+        "kind": "transfer",
+        "id": "1",
+        "sender": "A",
+        "receiver": "B",
+        "amount": "5.00",
+        "currency": "USD"
+      }
+    ],
+    "expected": {
+      "USD": {
+        "A": "5.00",
+        "B": "-5.00"
+      }
+    }
+  },
+  {
+    "name": "multi currency ledger",
+    "transactions": [
+      {
+        "kind": "expense",
+        "id": "1",
+        "payer": "A",
+        "amount": "10.00",
+        "currency": "USD",
+        "participants": ["A", "B", "C"],
+        "strategy": {
+          "type": "equal"
+        }
+      },
+      {
+        "kind": "expense",
+        "id": "2",
+        "payer": "B",
+        "amount": "15.00",
+        "currency": "EUR",
+        "participants": ["B", "C"],
+        "strategy": {
+          "type": "equal"
+        }
+      }
+    ],
+    "expected": {
+      "USD": {
+        "A": "6.66",
+        "B": "-3.33",
+        "C": "-3.33"
+      },
+      "EUR": {
+        "B": "7.50",
+        "C": "-7.50"
+      }
+    }
+  },
+  {
+    "name": "expense then partial repayment",
+    "transactions": [
+      {
+        "kind": "expense",
+        "id": "1",
+        "payer": "Alice",
+        "amount": "70.0",
+        "currency": "EUR",
+        "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+        "strategy": {
+          "type": "equal"
+        }
+      },
+      {
+        "kind": "transfer",
+        "id": "2",
+        "sender": "Bob",
+        "receiver": "Alice",
+        "amount": "14.00",
+        "currency": "EUR"
+      }
+    ],
+    "expected": {
+      "EUR": {
+        "Alice": "42.00",
+        "Ariel": "-14.00",
+        "Bob": "0.00",
+        "Charlie": "-14.00",
+        "David": "-14.00"
+      }
+    }
+  }
+]

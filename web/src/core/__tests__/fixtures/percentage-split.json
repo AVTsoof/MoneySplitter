@@ -1,0 +1,30 @@
+[
+  {
+    "name": "sixty forty",
+    "total": "10.00",
+    "participants": ["A", "B"],
+    "percentages": {
+      "A": "60",
+      "B": "40"
+    },
+    "expected": {
+      "A": "6.00",
+      "B": "4.00"
+    }
+  },
+  {
+    "name": "thirds with residue",
+    "total": "10.00",
+    "participants": ["A", "B", "C"],
+    "percentages": {
+      "A": "33.33",
+      "B": "33.33",
+      "C": "33.34"
+    },
+    "expected": {
+      "A": "3.34",
+      "B": "3.33",
+      "C": "3.33"
+    }
+  }
+]

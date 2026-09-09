@@ -1,0 +1,89 @@
+[
+  {
+    "name": "no residue",
+    "total": "30.00",
+    "participants": ["A", "B", "C"],
+    "expected": {
+      "A": "10.00",
+      "B": "10.00",
+      "C": "10.00"
+    }
+  },
+  {
+    "name": "positive residue of one penny",
+    "total": "10.00",
+    "participants": ["A", "B", "C"],
+    "expected": {
+      "A": "3.34",
+      "B": "3.33",
+      "C": "3.33"
+    }
+  },
+  {
+    "name": "negative residue on tiny amount",
+    "total": "0.05",
+    "participants": ["A", "B", "C"],
+    "expected": {
+      "A": "0.01",
+      "B": "0.02",
+      "C": "0.02"
+    }
+  },
+  {
+    "name": "negative residue of one penny",
+    "total": "10.00",
+    "participants": ["A", "B", "C", "D", "E", "F", "G"],
+    "expected": {
+      "A": "1.42",
+      "B": "1.43",
+      "C": "1.43",
+      "D": "1.43",
+      "E": "1.43",
+      "F": "1.43",
+      "G": "1.43"
+    }
+  },
+  {
+    "name": "negative residue of two pennies",
+    "total": "10.00",
+    "participants": ["A", "B", "C", "D", "E", "F"],
+    "expected": {
+      "A": "1.66",
+      "B": "1.66",
+      "C": "1.67",
+      "D": "1.67",
+      "E": "1.67",
+      "F": "1.67"
+    }
+  },
+  {
+    "name": "negative total",
+    "total": "-10.00",
+    "participants": ["A", "B", "C"],
+    "expected": {
+      "A": "-3.34",
+      "B": "-3.33",
+      "C": "-3.33"
+    }
+  },
+  {
+    "name": "single participant",
+    "total": "7.77",
+    "participants": ["A"],
+    "expected": {
+      "A": "7.77"
+    }
+  },
+  {
+    "name": "example group train fare",
+    "total": "70.0",
+    "participants": ["Alice", "Ariel", "Bob", "Charlie", "David"],
+    "expected": {
+      "Alice": "14.00",
+      "Ariel": "14.00",
+      "Bob": "14.00",
+      "Charlie": "14.00",
+      "David": "14.00"
+    }
+  }
+]

@@ -1,0 +1,151 @@
+[
+  {
+    "name": "three members one creditor",
+    "balances": {
+      "USD": {
+        "A": "6.66",
+        "B": "-3.33",
+        "C": "-3.33"
+      }
+    },
+    "expected": {
+      "USD": [
+        {
+          "from": "B",
+          "to": "A",
+          "amount": "3.33"
+        },
+        {
+          "from": "C",
+          "to": "A",
+          "amount": "3.33"
+        }
+      ]
+    }
+  },
+  {
+    "name": "already settled",
+    "balances": {
+      "USD": {
+        "A": "0",
+        "B": "0"
+      }
+    },
+    "expected": {
+      "USD": []
+    }
+  },
+  {
+    "name": "two creditors two debtors",
+    "balances": {
+      "USD": {
+        "A": "50.00",
+        "B": "30.00",
+        "C": "-60.00",
+        "D": "-20.00"
+      }
+    },
+    "expected": {
+      "USD": [
+        {
+          "from": "C",
+          "to": "A",
+          "amount": "50.00"
+        },
+        {
+          "from": "D",
+          "to": "B",
+          "amount": "20.00"
+        },
+        {
+          "from": "C",
+          "to": "B",
+          "amount": "10.00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "multi currency simplified independently",
+    "balances": {
+      "EUR": {
+        "Alice": "56.00",
+        "Ariel": "-14.00",
+        "Bob": "-14.00",
+        "Charlie": "-14.00",
+        "David": "-14.00"
+      },
+      "USD": {
+        "Alice": "-25.00",
+        "Bob": "25.00"
+      }
+    },
+    "expected": {
+      "EUR": [
+        {
+          "from": "Ariel",
+          "to": "Alice",
+          "amount": "14.00"
+        },
+        {
+          "from": "Bob",
+          "to": "Alice",
+          "amount": "14.00"
+        },
+        {
+          "from": "Charlie",
+          "to": "Alice",
+          "amount": "14.00"
+        },
+        {
+          "from": "David",
+          "to": "Alice",
+          "amount": "14.00"
+        }
+      ],
+      "USD": [
+        {
+          "from": "Alice",
+          "to": "Bob",
+          "amount": "25.00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "equal debts tie broken by member name",
+    "balances": {
+      "USD": {
+        "A": "10.00",
+        "B": "-5.00",
+        "C": "-5.00"
+      }
+    },
+    "expected": {
+      "USD": [
+        {
+          "from": "B",
+          "to": "A",
+          "amount": "5.00"
+        },
+        {
+          "from": "C",
+          "to": "A",
+          "amount": "5.00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "dust below threshold is ignored",
+    "balances": {
+      "USD": {
+        "A": "0.0005",
+        "B": "-0.0005"
+      }
+    },
+    "expected": {
+      "USD": []
+    }
+  }
+]

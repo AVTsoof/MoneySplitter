@@ -1,0 +1,26 @@
+[
+  {
+    "name": "exact amounts must equal total",
+    "strategy": {
+      "type": "exact",
+      "amounts": {
+        "A": "10.00",
+        "B": "10.00"
+      }
+    },
+    "total": "30.00",
+    "participants": ["A", "B"]
+  },
+  {
+    "name": "percentages must sum to one hundred",
+    "strategy": {
+      "type": "percentage",
+      "percentages": {
+        "A": "50",
+        "B": "40"
+      }
+    },
+    "total": "10.00",
+    "participants": ["A", "B"]
+  }
+]

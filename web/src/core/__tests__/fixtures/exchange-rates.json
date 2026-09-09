@@ -1,0 +1,64 @@
+[
+  {
+    "name": "USD to USD",
+    "rates": {
+      "USD": "1.0",
+      "EUR": "0.92",
+      "GBP": "0.78"
+    },
+    "from": "USD",
+    "to": "USD",
+    "expected": "1.0"
+  },
+  {
+    "name": "USD to EUR",
+    "rates": {
+      "USD": "1.0",
+      "EUR": "0.92",
+      "GBP": "0.78"
+    },
+    "from": "USD",
+    "to": "EUR",
+    "expected": "0.92"
+  },
+  {
+    "name": "EUR to USD",
+    "rates": {
+      "USD": "1.0",
+      "EUR": "0.92",
+      "GBP": "0.78"
+    },
+    "from": "EUR",
+    "to": "USD",
+    "expected": "1.086956521739130434782608696"
+  },
+  {
+    "name": "EUR to GBP",
+    "rates": {
+      "USD": "1.0",
+      "EUR": "0.92",
+      "GBP": "0.78"
+    },
+    "from": "EUR",
+    "to": "GBP",
+    "expected": "0.8478260869565217391304347826"
+  },
+  {
+    "name": "USD to JPY",
+    "rates": {
+      "USD": "1.0",
+      "EUR": "0.92",
+      "GBP": "0.78"
+    },
+    "from": "USD",
+    "to": "JPY",
+    "expected": "1"
+  },
+  {
+    "name": "empty rate table falls back to one",
+    "rates": {},
+    "from": "USD",
+    "to": "EUR",
+    "expected": "1.0"
+  }
+]

@@ -1,0 +1,70 @@
+[
+  {
+    "name": "converts eur into usd base",
+    "transactions": [
+      {
+        "kind": "expense",
+        "id": "1",
+        "payer": "A",
+        "amount": "10.00",
+        "currency": "USD",
+        "participants": ["A", "B"],
+        "strategy": {
+          "type": "equal"
+        }
+      },
+      {
+        "kind": "expense",
+        "id": "2",
+        "payer": "B",
+        "amount": "20.00",
+        "currency": "EUR",
+        "participants": ["A", "B"],
+        "strategy": {
+          "type": "equal"
+        }
+      }
+    ],
+    "baseCurrency": "USD",
+    "rates": {
+      "EUR": "1.1"
+    },
+    "expected": {
+      "A": "-6.00",
+      "B": "6.00"
+    }
+  },
+  {
+    "name": "skips currency with missing rate",
+    "transactions": [
+      {
+        "kind": "expense",
+        "id": "1",
+        "payer": "A",
+        "amount": "10.00",
+        "currency": "USD",
+        "participants": ["A", "B"],
+        "strategy": {
+          "type": "equal"
+        }
+      },
+      {
+        "kind": "expense",
+        "id": "2",
+        "payer": "B",
+        "amount": "20.00",
+        "currency": "EUR",
+        "participants": ["A", "B"],
+        "strategy": {
+          "type": "equal"
+        }
+      }
+    ],
+    "baseCurrency": "USD",
+    "rates": {},
+    "expected": {
+      "A": "5.00",
+      "B": "-5.00"
+    }
+  }
+]
