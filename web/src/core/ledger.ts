@@ -1,0 +1,40 @@
+import Decimal from 'decimal.js'
+import { applyToBalances } from './transactions'
+import type { Balances, MultiBalances, Transaction } from './types'
+
+export function getNetBalances(transactions: Transaction[]): MultiBalances {
+  const multi: MultiBalances = {}
+  for (const tx of transactions) {
+    multi[tx.currency] ??= {}
+    applyToBalances(tx, multi[tx.currency])
+  }
+  return multi
+}
+
+/**
+ * Converts every per-currency balance into `baseCurrency`. A currency with no
+ * rate is skipped entirely rather than assumed 1:1, so a missing rate under-
+ * reports instead of silently inventing money.
+ */
+export function getUnifiedBalances(
+  transactions: Transaction[],
+  baseCurrency: string,
+  rates: Record<string, string | Decimal>,
+): Balances {
+  const unified: Balances = {}
+
+  for (const [currency, balances] of Object.entries(getNetBalances(transactions))) {
+    let rate = new Decimal(1)
+    if (currency !== baseCurrency) {
+      if (rates[currency] === undefined) continue
+      rate = new Decimal(rates[currency])
+    }
+
+    for (const [member, balance] of Object.entries(balances)) {
+      const converted = balance.times(rate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+      unified[member] = (unified[member] ?? new Decimal(0)).plus(converted)
+    }
+  }
+
+  return unified
+}
