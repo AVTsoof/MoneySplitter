@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 package-lock.json
+# The web app's lockfile is committed for reproducible, auditable installs.
+!web/package-lock.json
 
 # Build
 dist/
@@ -21,3 +23,10 @@ __pycache__/
 
 # Data
 .data/
+
+# Web tooling
+web/coverage/
+web/playwright-report/
+web/test-results/
+.wrangler/
+supabase/.temp/
