@@ -78,10 +78,15 @@ Windows: use `bootstrap.bat` and `run.bat`.
 | Path | What it is |
 | --- | --- |
 | `web/` | The React PWA that will replace everything below |
+| `web/README.md` | How to develop the web app: commands, conventions, gotchas |
 | `core/` | Python math engine: splitting, balances, debt simplification |
 | `io_layer/` | Python persistence: CSV, local filesystem, PDF |
 | `bridge/` | Python orchestrator between the engine and storage |
 | `app.py` | Streamlit UI |
-| `dev.md` | Phase-by-phase plan and task status |
-| `features.md` | What is implemented and what is pending |
+| `dev.md` | Project context, conventions, and the phase-by-phase plan |
+| `features.md` | What is implemented, pending, and deprecated |
+| `docs/authorization.md` | The Supabase Row Level Security model |
 | `examples/` | A sample group used for demos and seeding |
+
+Start with [dev.md](dev.md) — it holds the architecture, the conventions every change is
+expected to follow, and the current phase status.

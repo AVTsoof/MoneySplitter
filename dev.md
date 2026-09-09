@@ -1,5 +1,82 @@
 2026-05-15 13:16:45
 
+## Project Context & Conventions
+
+**MoneySplitter** is a local-first debt-splitting app. It calculates net balances and
+minimises the number of payments needed to settle a group.
+
+The project is **mid-migration (Phase 12)**. Read that phase before planning any work.
+
+- **Being built:** an offline-first React + TypeScript PWA in `web/`, backed by Supabase
+  Postgres with Row Level Security and no custom API server.
+- **Being retired:** the Streamlit app at the repo root, along with its Python engine and
+  local-CSV storage. It still runs and is still the feature-complete version.
+
+Earlier plans for Google Drive CSV storage (Phases 6-7) and Firebase (Phase 11) were
+abandoned. Do not implement against them.
+
+### Technical Stack
+
+| | Web PWA (`web/`) — target | Streamlit app (root) — retiring |
+| --- | --- | --- |
+| UI | React 19 + TypeScript + Vite 8 + Tailwind v4 | Streamlit (Python) |
+| Engine | TypeScript port, runs in the browser | `core/` pure Python |
+| Storage | Dexie (IndexedDB), source of truth for every read and write | local CSV via `io_layer/` |
+| Cloud | Supabase Postgres + Auth, called directly with `@supabase/supabase-js` | none |
+| Authorisation | Postgres Row Level Security (see `docs/authorization.md`) | none |
+| Hosting | Cloudflare Workers static assets | Streamlit Cloud (never deployed) |
+| Testing | Vitest, Testing Library, `fake-indexeddb`, pgTAP, Playwright | pytest |
+
+### Modular Architecture
+
+The decoupled module boundaries carry over from the Python design:
+
+| Python (retiring) | TypeScript (target) | Responsibility |
+| --- | --- | --- |
+| `core/` | `web/src/core/` | Pure math. Splitting, net balances, debt simplification. |
+| `io_layer/` | `web/src/data/` | Persistence and schema. |
+| `bridge/` | `web/src/data/repository.ts` | The single API the UI is allowed to call. |
+| `app.py` | `web/src/features/` | Presentation. |
+
+Per-module responsibilities and the design patterns each must apply are specified in
+"Modular Architecture & Design Pattern Specification" near the end of this document.
+
+### Development Conventions
+
+- **Test-Driven:** Write the failing test first and confirm it fails for the right reason
+  before writing implementation. The Python engine is the oracle for the port; golden
+  fixtures live in `web/src/core/__tests__/fixtures/`.
+- **Atomic Commits:** One subject per commit, suite green before committing, Conventional
+  Commits format. Never `--no-verify`.
+- **Design Patterns:** Rigorously apply Strategy (for splitting), Repository (for IO
+  abstraction), and Adapter (for format conversion).
+- **Local-First:** All balance calculations MUST happen client-side. The UI reads from
+  local storage and never awaits the network.
+- **Pure Core:** `web/src/core/` must not import React or Dexie, or touch `window`. The
+  subset-sum solver will need a Web Worker later.
+- **Money:** never a `number`. Use the configured `Decimal` from `web/src/core/money.ts`,
+  which mirrors Python's decimal context. Amounts cross boundaries as strings.
+- **Soft Deletes:** set `deletedAt`; never remove a row, or sync cannot propagate it.
+- **Immutable State:** Logic in the core engine should avoid mutations.
+- **UI Language:** Adhere to the "Simple Sharing" dictionary (e.g., use "The Bottom Line"
+  instead of "Net Balance").
+- **Incremental Phases:** Development follows the phased plan below.
+
+Per-file conventions and gotchas for the web app are in `web/README.md`.
+
+### Working Protocol
+
+Applies to contributors and AI assistants alike.
+
+- **Reactive Mode:** Wait for an explicit directive before starting tasks, research, or
+  phase updates. No proactive background work or auto-started workflows.
+- **Algorithm Developer mindset:** Prioritise mathematical rigor and clean logic in the
+  core engine over convenience elsewhere.
+- **Phase Tracking:** Always update phase status below (`[DONE]`, `[IN PROGRESS]`,
+  `[SUPERSEDED BY ...]`) as work starts or completes.
+
+---
+
 ## Agile Reconstruction Plan
 
 This plan follows an incremental development cycle, prioritizing the mathematical engine and ledger logic. As an **Algorithm Developer**, you may find the transition from simple list-based accounting to graph-based optimization particularly interesting.
@@ -357,6 +434,10 @@ for every `exists()` lookup and cannot be tested with a SQL test harness.
 2026-05-15 13:46:12
 
 ## Modular Architecture & Design Pattern Specification
+
+> The `split-*` names below are the original Python modules. The same boundaries and
+> patterns apply to the TypeScript port; see the mapping table in "Project Context &
+> Conventions" at the top of this document.
 
 To ensure scalability and maintainability, the application follows a **Decoupled Modular Architecture**. Each component is a "Black Box" that interacts with others through strictly defined interfaces, allowing the **Engine** to be run as a standalone Python CLI script or integrated into the Web UI.
 

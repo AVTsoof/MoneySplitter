@@ -106,3 +106,11 @@ A pre-commit hook runs lint-staged plus Vitest on staged files. Do not use
   Cast the array once (`as unknown as Case[]`) instead of at each call site.
 - Compare money by value, not string. Python prints `Decimal('1.0')` as `"1.0"`;
   decimal.js prints `"1"`. Same number.
+
+## See also
+
+- [`../dev.md`](../dev.md) — project context, architecture, working conventions, and the
+  phase plan. Read it before starting anything non-trivial.
+- [`../docs/authorization.md`](../docs/authorization.md) — the Supabase Row Level
+  Security model this app will authenticate against.
+- [`../features.md`](../features.md) — what is implemented, pending, and deprecated.
