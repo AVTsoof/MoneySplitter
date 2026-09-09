@@ -137,6 +137,54 @@
     }
   },
   {
+    "name": "equal debts tie ignores insertion order",
+    "balances": {
+      "USD": {
+        "A": "10.00",
+        "C": "-5.00",
+        "B": "-5.00"
+      }
+    },
+    "expected": {
+      "USD": [
+        {
+          "from": "B",
+          "to": "A",
+          "amount": "5.00"
+        },
+        {
+          "from": "C",
+          "to": "A",
+          "amount": "5.00"
+        }
+      ]
+    }
+  },
+  {
+    "name": "equal credits tie broken by member name",
+    "balances": {
+      "USD": {
+        "C": "5.00",
+        "B": "5.00",
+        "A": "-10.00"
+      }
+    },
+    "expected": {
+      "USD": [
+        {
+          "from": "A",
+          "to": "B",
+          "amount": "5.00"
+        },
+        {
+          "from": "A",
+          "to": "C",
+          "amount": "5.00"
+        }
+      ]
+    }
+  },
+  {
     "name": "dust below threshold is ignored",
     "balances": {
       "USD": {

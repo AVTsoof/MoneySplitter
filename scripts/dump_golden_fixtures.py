@@ -370,6 +370,16 @@ def simplify_cases():
             "balances": {"USD": {"A": "10.00", "B": "-5.00", "C": "-5.00"}},
         },
         {
+            # Insertion order (C, B) deliberately disagrees with name order so a
+            # stable sort that ignores the tie-break gives a different answer.
+            "name": "equal debts tie ignores insertion order",
+            "balances": {"USD": {"A": "10.00", "C": "-5.00", "B": "-5.00"}},
+        },
+        {
+            "name": "equal credits tie broken by member name",
+            "balances": {"USD": {"C": "5.00", "B": "5.00", "A": "-10.00"}},
+        },
+        {
             "name": "dust below threshold is ignored",
             "balances": {"USD": {"A": "0.0005", "B": "-0.0005"}},
         },
