@@ -1,0 +1,16 @@
+# Normalise every text file to LF, both in the repository and in working trees,
+# so editors on Windows cannot reintroduce CRLF.
+* text=auto eol=lf
+
+# Binaries git must never touch. These legitimately contain CR bytes.
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
