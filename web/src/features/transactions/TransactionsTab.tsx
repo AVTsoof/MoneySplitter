@@ -48,7 +48,6 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
   const [originalDraft, setOriginalDraft] = useState<EditDraft | null>(null)
-  const [groupBy, setGroupBy] = useState<'day' | 'user'>('day')
   const ledger = useLiveQuery(async () => {
     const [group, groupLedger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
     const memberNames = new Map(
@@ -74,11 +73,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     right.occurredAt.localeCompare(left.occurredAt),
   )
   const groupLabel = (transaction: (typeof transactions)[number]) =>
-    groupBy === 'day'
-      ? transaction.occurredAt.slice(0, 10)
-      : memberNames.get(
-          transaction.type === 'expense' ? transaction.payerMemberId! : transaction.senderMemberId!,
-        )!
+    transaction.occurredAt.slice(0, 10)
 
   async function saveExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -376,16 +371,6 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
         ))}
       </section>
       <p className="transaction-count">{transactions.length} entries</p>
-      <label className="entry-grouping">
-        Group entries by
-        <select
-          value={groupBy}
-          onChange={(event) => setGroupBy(event.target.value as 'day' | 'user')}
-        >
-          <option value="day">Day</option>
-          <option value="user">User</option>
-        </select>
-      </label>
       <ol className="transaction-list">
         {orderedTransactions.map((transaction, index) => {
           const previous = orderedTransactions[index - 1]
@@ -398,7 +383,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
           return (
             <li key={transaction.id} className="transaction-row">
               <div>
-                {showGroup && <p className="transaction-group">{groupLabel(transaction)}</p>}
+                {showGroup && <h3 className="transaction-group">{groupLabel(transaction)}</h3>}
                 {editingTransactionId === transaction.id ? (
                   <form
                     className="bill-form"

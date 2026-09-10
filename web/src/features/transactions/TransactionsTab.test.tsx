@@ -298,12 +298,12 @@ describe('TransactionsTab', () => {
     })
     render(<TransactionsTab groupId={groupId} />)
 
-    expect(await screen.findByText('2026-01-02')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '2026-01-02' })).toBeInTheDocument()
     expect(screen.getByText(/2026-01-02 10:00/)).toBeInTheDocument()
     const entries = screen
       .getAllByRole('listitem')
       .filter((item) => item.textContent?.includes('Older') || item.textContent?.includes('Newer'))
     expect(entries[0]).toHaveTextContent('Newer')
-    expect(screen.getByLabelText('Group entries by')).toHaveValue('day')
+    expect(screen.queryByLabelText('Group entries by')).not.toBeInTheDocument()
   })
 })

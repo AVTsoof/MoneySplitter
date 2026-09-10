@@ -124,24 +124,20 @@
   margin: 0;
 }
 
-.transaction-row time,
-.transaction-group,
-.entry-grouping {
-  color: #52635d;
+.transaction-row time {
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
 .transaction-group {
-  margin: 0 0 8px;
+  margin: 28px 0 14px;
   color: var(--foreground);
+  font-size: 20px;
   font-weight: 700;
 }
 
-.entry-grouping {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px;
+.transaction-row:first-child .transaction-group {
+  margin-top: 0;
 }
 
 .transaction-description {
