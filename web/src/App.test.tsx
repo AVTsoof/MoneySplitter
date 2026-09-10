@@ -24,4 +24,15 @@ describe('App', () => {
     expect(await screen.findByRole('table', { name: 'Net balances' })).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Alice/ })).toBeInTheDocument()
   })
+
+  it('removes the current group from Settings', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Example Italy Trip' })
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    await user.click(await screen.findByRole('button', { name: 'Delete group' }))
+
+    expect(await screen.findByText('No groups yet.')).toBeInTheDocument()
+  })
 })

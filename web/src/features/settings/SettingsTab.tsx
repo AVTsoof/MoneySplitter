@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { getSupportedCurrencyCodes } from '../../core/currency'
 import {
   addMember,
+  deleteGroup,
   getGroup,
   getMembers,
   memberHasTransactions,
@@ -124,6 +125,13 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
         </label>
         <button type="button" onClick={addCurrency} disabled={availableCurrencies.length === 0}>
           Add currency
+        </button>
+      </section>
+
+      <section className="danger-zone" aria-labelledby="delete-group-heading">
+        <h3 id="delete-group-heading">Delete group</h3>
+        <button type="button" onClick={() => deleteGroup(groupId)}>
+          Delete group
         </button>
       </section>
     </div>

@@ -91,3 +91,14 @@
   border-radius: 4px;
   font: inherit;
 }
+
+.danger-zone {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #d4d8cd;
+}
+
+.danger-zone button {
+  border-color: #b44623;
+  color: #b44623;
+}
