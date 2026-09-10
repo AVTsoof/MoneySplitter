@@ -12,7 +12,7 @@ The private, simple way to split bills with friends.
 > | Location | repo root | `web/` |
 > | Run | `./run.sh` | `cd web && npm run dev` |
 > | Storage | local CSV files | IndexedDB, syncing to Supabase |
-> | Status | works, feature-complete | engine and data layer done, UI next |
+> | Status | works, feature-complete | Stage A local UI complete; cloud sync pending |
 
 ## 🌟 Why MoneySplitter?
 - **Privacy First:** Your data is yours. Groups are readable only by their members.

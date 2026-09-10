@@ -564,19 +564,19 @@ before any cloud work starts. Stage B adds sync. Stage C deploys and deletes Pyt
 * [DONE] Port currency conversion and the 157-currency registry
 * [DONE] Dexie schema shaped like the future Postgres tables
 * [DONE] Repository layer over Dexie - the UI's only data API
-* [TODO] Seed the example group on first run
-* [TODO] App shell: routing, mobile-first layout, bottom tab bar
-* [TODO] Transactions tab (list, add bill, add transfer, edit, delete, running balances)
-* [TODO] Balances + settlements tab
-* [TODO] Debt map tab (`@xyflow/react`)
-* [TODO] Rates tab
-* [TODO] Settings tab (members, currencies, delete group)
-* [TODO] Playwright specs for offline use and PWA install
-* [TODO] PDF report in-browser (`pdfmake` + `bidi-js` for RTL)
-* [TODO] Exchange rates from Frankfurter with a 24h cache
+* [DONE] Seed the example group on first run
+* [DONE] App shell: routing, mobile-first layout, bottom tab bar
+* [DONE] Transactions tab (list, add bill, add transfer, edit, delete, running balances)
+* [DONE] Balances + settlements tab
+* [DONE] Debt map tab (`@xyflow/react`)
+* [DONE] Rates tab
+* [DONE] Settings tab (members, currencies, delete group)
+* [DONE] Playwright specs for offline use and PWA install
+* [DONE] PDF report in-browser (`pdfmake` + `bidi-js` for RTL)
+* [DONE] Exchange rates from Frankfurter with a 24h cache
 
-**Stage A gate:** app fully usable at `localhost:5173`, reviewed and restyled before
-Stage B begins.
+**Stage A complete:** app is usable at `localhost:5173`, including offline reload after
+its first visit. Review and restyle it before Stage B begins.
 
 #### Stage B - Supabase sync, auth, multi-device
 

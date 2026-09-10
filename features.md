@@ -1,18 +1,9 @@
 # TODO
 
-## Web PWA (Phase 10, in progress)
+## Web PWA (Phase 12, in progress)
 
-Tracked in detail in `dev.md`. Still missing:
+Stage A is complete. Remaining work:
 
-- app: seed the example group on first run.
-- app: shell with routing, mobile-first layout and bottom tab bar.
-- app: transactions tab (list, add bill, add transfer, edit, delete, running balances).
-- app: balances and settlements tab.
-- app: debt map tab.
-- app: exchange rates tab with manual refresh.
-- app: settings tab (members, currencies, delete group).
-- app: PDF report generated in the browser, including RTL/Hebrew.
-- app: Playwright coverage for offline use and PWA install.
 - cloud: Supabase schema, RLS policies and pgTAP tests.
 - cloud: magic-link auth and group invites.
 - cloud: outbox push, delta pull, realtime sync across devices.
@@ -55,6 +46,12 @@ Tracked in detail in `dev.md`. Still missing:
   UUIDs, `updatedAt` and soft deletes.
 - data: repository layer that is the UI's only data API; all writes hit IndexedDB and
   never await the network.
+- app: seeded example group, responsive workspace, transaction entry and editing,
+  participant and currency selection, balances, Smart Settle, member and group settings.
+- app: interactive debt map, Frankfurter exchange-rate cache, and browser PDF export
+  with RTL/Hebrew text ordering.
+- pwa: installable service-worker shell with Playwright coverage for the manifest and
+  offline reload after first use.
 
 # Depracated Features
 
