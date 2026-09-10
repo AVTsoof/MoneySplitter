@@ -183,6 +183,13 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     void deleteTransaction(transactionId)
   }
 
+  const changedMarker = (changed: boolean | undefined) =>
+    changed && (
+      <span aria-hidden="true" className="changed-marker">
+        *
+      </span>
+    )
+
   return (
     <div className="transactions-tab">
       <button
@@ -394,8 +401,12 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     }}
                   >
                     <label>
-                      Description
+                      <span className="edit-caption">
+                        Description{' '}
+                        {changedMarker(editDraft?.description !== originalDraft?.description)}
+                      </span>
                       <input
+                        aria-label="Description"
                         data-changed={editDraft?.description !== originalDraft?.description}
                         value={editDraft?.description ?? ''}
                         onChange={(event) =>
@@ -406,7 +417,9 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                       />
                     </label>
                     <label>
-                      Amount
+                      <span className="edit-caption">
+                        Amount {changedMarker(editDraft?.amount !== originalDraft?.amount)}
+                      </span>
                       <input
                         data-changed={editDraft?.amount !== originalDraft?.amount}
                         min="0.01"
@@ -419,7 +432,9 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                       />
                     </label>
                     <label>
-                      Currency
+                      <span className="edit-caption">
+                        Currency {changedMarker(editDraft?.currency !== originalDraft?.currency)}
+                      </span>
                       <select
                         data-changed={editDraft?.currency !== originalDraft?.currency}
                         value={editDraft?.currency ?? ''}
@@ -437,7 +452,10 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                       </select>
                     </label>
                     <label>
-                      Timestamp
+                      <span className="edit-caption">
+                        Timestamp{' '}
+                        {changedMarker(editDraft?.occurredAt !== originalDraft?.occurredAt)}
+                      </span>
                       <input
                         data-changed={editDraft?.occurredAt !== originalDraft?.occurredAt}
                         type="datetime-local"
@@ -456,7 +474,12 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     {transaction.type === 'expense' && (
                       <>
                         <label>
-                          Paid by
+                          <span className="edit-caption">
+                            Paid by{' '}
+                            {changedMarker(
+                              editDraft?.payerMemberId !== originalDraft?.payerMemberId,
+                            )}
+                          </span>
                           <select
                             data-changed={editDraft?.payerMemberId !== originalDraft?.payerMemberId}
                             value={editDraft?.payerMemberId ?? ''}
@@ -507,7 +530,12 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     {transaction.type === 'transfer' && (
                       <>
                         <label>
-                          From
+                          <span className="edit-caption">
+                            From{' '}
+                            {changedMarker(
+                              editDraft?.senderMemberId !== originalDraft?.senderMemberId,
+                            )}
+                          </span>
                           <select
                             data-changed={
                               editDraft?.senderMemberId !== originalDraft?.senderMemberId
@@ -528,7 +556,12 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                           </select>
                         </label>
                         <label>
-                          To
+                          <span className="edit-caption">
+                            To{' '}
+                            {changedMarker(
+                              editDraft?.receiverMemberId !== originalDraft?.receiverMemberId,
+                            )}
+                          </span>
                           <select
                             data-changed={
                               editDraft?.receiverMemberId !== originalDraft?.receiverMemberId

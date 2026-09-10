@@ -196,6 +196,7 @@ describe('TransactionsTab', () => {
       target: { value: 'Airport train' },
     })
     expect(within(row).getByLabelText('Description')).toHaveAttribute('data-changed', 'true')
+    expect(within(row).getByText('*')).toHaveClass('changed-marker')
     fireEvent.click(within(row).getByRole('button', { name: 'Save changes' }))
 
     expect(confirm).toHaveBeenCalledWith('Save these entry changes?')

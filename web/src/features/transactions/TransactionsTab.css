@@ -192,6 +192,17 @@
   place-items: center;
 }
 
+.changed-marker {
+  color: var(--destructive);
+  font-weight: 700;
+}
+
+.edit-caption {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
 .edit-description {
   display: grid;
   gap: 4px;
