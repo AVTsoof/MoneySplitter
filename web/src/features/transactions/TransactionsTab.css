@@ -149,6 +149,22 @@
   font-weight: 700;
 }
 
+.transaction-type {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.transaction-type.transfer {
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
 .transaction-meta {
   margin-top: 5px;
   color: var(--muted-foreground);

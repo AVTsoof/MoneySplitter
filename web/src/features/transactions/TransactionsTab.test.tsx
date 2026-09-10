@@ -30,6 +30,7 @@ describe('TransactionsTab', () => {
     const row = leonardo.closest('li')!
     expect(within(row).getByText('70.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
+    expect(within(row).getByText('Bill')).toBeInTheDocument()
     expect(screen.getByText('34 entries')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Export PDF' })).toBeInTheDocument()
   })
@@ -116,6 +117,7 @@ describe('TransactionsTab', () => {
     const row = screen.getByText('Transfer from Bob to Alice').closest('li')!
     expect(within(row).getByText('10.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Bob paid Alice')).toBeInTheDocument()
+    expect(within(row).getByText('Transfer')).toBeInTheDocument()
   })
 
   it('removes a transaction from the live history', async () => {

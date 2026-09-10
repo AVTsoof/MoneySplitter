@@ -582,6 +582,9 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     {displayDescription(transaction.description)}
                   </p>
                 )}
+                <span className={`transaction-type ${transaction.type}`}>
+                  {transaction.type === 'expense' ? 'Bill' : 'Transfer'}
+                </span>
                 <p className="transaction-meta">{counterparty}</p>
                 <time dateTime={transaction.occurredAt}>
                   {transaction.occurredAt.slice(0, 16).replace('T', ' ')}
