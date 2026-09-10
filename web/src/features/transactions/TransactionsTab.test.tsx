@@ -62,4 +62,20 @@ describe('TransactionsTab', () => {
     expect(within(row).getByText('10.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Bob paid Alice')).toBeInTheDocument()
   })
+
+  it('removes a transaction from the live history', async () => {
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    const description = await screen.findByText(
+      'Leonardo Express train - Fiumicino to Roma Termini',
+    )
+    await screen.findByText('34 entries')
+    fireEvent.click(within(description.closest('li')!).getByRole('button', { name: 'Delete bill' }))
+
+    expect(await screen.findByText('33 entries')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Leonardo Express train - Fiumicino to Roma Termini'),
+    ).not.toBeInTheDocument()
+  })
 })

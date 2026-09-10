@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addExpense, addTransfer, getMembers, getTransactions } from '../../data/repository'
+import {
+  addExpense,
+  addTransfer,
+  deleteTransaction,
+  getMembers,
+  getTransactions,
+} from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import './TransactionsTab.css'
 
@@ -184,7 +190,17 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                 </p>
                 <p className="transaction-meta">{counterparty}</p>
               </div>
-              <strong>{money(transaction.amount, transaction.currency)}</strong>
+              <div className="transaction-actions">
+                <strong>{money(transaction.amount, transaction.currency)}</strong>
+                <button
+                  type="button"
+                  aria-label="Delete bill"
+                  title="Delete bill"
+                  onClick={() => deleteTransaction(transaction.id)}
+                >
+                  x
+                </button>
+              </div>
             </li>
           )
         })}
