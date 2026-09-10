@@ -1,15 +1,15 @@
 .transactions-tab {
-  font-family: 'Trebuchet MS', sans-serif;
+  font-family: inherit;
 }
 
 .add-bill,
 .bill-form button {
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #447064;
-  border-radius: 4px;
-  color: #fff;
-  background: #153c34;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--primary-foreground);
+  background: var(--primary);
   cursor: pointer;
 }
 
@@ -18,13 +18,15 @@
   gap: 12px;
   margin: 16px 0;
   padding: 16px;
-  border: 1px solid #b7c5b5;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
 }
 
 .bill-form label {
   display: grid;
   gap: 6px;
-  color: #153c34;
+  color: var(--foreground);
   font-weight: 700;
 }
 
@@ -32,8 +34,10 @@
 .bill-form select {
   min-height: 38px;
   padding: 6px 8px;
-  border: 1px solid #8ba399;
-  border-radius: 4px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   font: inherit;
 }
 
@@ -65,8 +69,8 @@
 }
 
 .bill-form button[type='button'] {
-  color: #153c34;
-  background: transparent;
+  color: var(--foreground);
+  background: var(--muted);
 }
 
 .running-balances {
@@ -77,7 +81,7 @@
 
 .running-balances h3 {
   margin: 0;
-  color: #153c34;
+  color: var(--foreground);
   font-size: 16px;
 }
 
@@ -88,13 +92,13 @@
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
-  color: #52635d;
+  color: var(--muted-foreground);
   font-variant-numeric: tabular-nums;
 }
 
 .transaction-count {
   margin: 0 0 12px;
-  color: #437063;
+  color: var(--muted-foreground);
   font-size: 14px;
   font-weight: 700;
 }
@@ -103,7 +107,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #b7c5b5;
+  border-top: 1px solid var(--border);
 }
 
 .transaction-row {
@@ -112,7 +116,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 0;
-  border-bottom: 1px solid #d4d8cd;
+  border-bottom: 1px solid var(--border);
 }
 
 .transaction-description,
@@ -129,7 +133,7 @@
 
 .transaction-group {
   margin: 0 0 8px;
-  color: #153c34;
+  color: var(--foreground);
   font-weight: 700;
 }
 
@@ -147,13 +151,13 @@
 
 .transaction-meta {
   margin-top: 5px;
-  color: #52635d;
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 
 .transaction-row strong {
   flex: 0 0 auto;
-  color: #153c34;
+  color: var(--foreground);
   font-size: 15px;
 }
 
@@ -168,10 +172,10 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #b7c5b5;
-  border-radius: 4px;
-  color: #b44623;
-  background: transparent;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--destructive);
+  background: var(--card);
   cursor: pointer;
   place-items: center;
 }
@@ -179,7 +183,7 @@
 .edit-description {
   display: grid;
   gap: 4px;
-  color: #153c34;
+  color: var(--foreground);
   font-size: 14px;
   font-weight: 700;
 }
@@ -187,7 +191,9 @@
 .edit-description input {
   min-height: 34px;
   padding: 5px 7px;
-  border: 1px solid #8ba399;
-  border-radius: 4px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   font: inherit;
 }

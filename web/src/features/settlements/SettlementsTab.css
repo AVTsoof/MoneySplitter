@@ -2,7 +2,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-family: 'Trebuchet MS', sans-serif;
+  font-family: inherit;
 }
 
 .settlement-list li {
@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 0;
-  border-bottom: 1px solid #d4d8cd;
+  border-bottom: 1px solid var(--border);
 }
 
 .settlement-parties,
@@ -20,28 +20,28 @@
 }
 
 .settlement-parties {
-  color: #153c34;
+  color: var(--foreground);
   font-weight: 700;
 }
 
 .settlement-amount {
   margin-top: 5px;
-  color: #52635d;
+  color: var(--muted-foreground);
   font-size: 14px;
 }
 
 .settlement-list button {
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #447064;
-  border-radius: 4px;
-  color: #153c34;
-  background: transparent;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   cursor: pointer;
 }
 
 .settled-up {
-  font-family: 'Trebuchet MS', sans-serif;
-  color: #287457;
+  font-family: inherit;
+  color: var(--success);
   font-weight: 700;
 }

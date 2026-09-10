@@ -1,6 +1,6 @@
 .balances-tab {
   overflow-x: auto;
-  font-family: 'Trebuchet MS', sans-serif;
+  font-family: inherit;
 }
 
 .balances-tab table {
@@ -11,7 +11,7 @@
 .balances-tab th,
 .balances-tab td {
   padding: 12px 8px;
-  border-bottom: 1px solid #d4d8cd;
+  border-bottom: 1px solid var(--border);
   text-align: left;
 }
 
@@ -20,9 +20,9 @@
 }
 
 .balances-tab .owed {
-  color: #287457;
+  color: var(--success);
 }
 
 .balances-tab .owes {
-  color: #b44623;
+  color: var(--destructive);
 }

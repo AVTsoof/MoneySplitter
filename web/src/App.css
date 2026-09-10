@@ -1,7 +1,7 @@
 :root {
-  color: #13211e;
-  background: #f4f2ea;
-  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -15,6 +15,7 @@ button {
 .app-shell {
   min-height: 100%;
   padding: 32px 20px 48px;
+  background: var(--background);
 }
 
 .app-header,
@@ -25,17 +26,17 @@ button {
 
 .app-header {
   padding: 24px 0 32px;
-  border-bottom: 1px solid #b7c5b5;
+  border-bottom: 1px solid var(--border);
 }
 
 .eyebrow,
 .panel-kicker {
   margin: 0;
-  color: #437063;
-  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--muted-foreground);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -50,8 +51,8 @@ button {
 .group-title h1,
 .workspace-panel h2 {
   margin: 0;
-  color: #153c34;
-  font-weight: 400;
+  color: var(--foreground);
+  font-weight: 650;
 }
 
 .group-title h1 {
@@ -62,17 +63,17 @@ button {
 .group-title p,
 .workspace-panel p:not(.panel-kicker) {
   margin: 8px 0 0;
-  color: #52635d;
-  font-family: 'Trebuchet MS', sans-serif;
+  color: var(--muted-foreground);
+  font-family: inherit;
 }
 
 .group-switcher {
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #447064;
-  border-radius: 4px;
-  color: #153c34;
-  background: transparent;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   cursor: pointer;
 }
 
@@ -84,7 +85,7 @@ button {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  border-bottom: 1px solid #b7c5b5;
+  border-bottom: 1px solid var(--border);
 }
 
 .tab {
@@ -92,21 +93,21 @@ button {
   min-height: 42px;
   padding: 8px 12px;
   border: 0;
-  border-bottom: 3px solid transparent;
-  color: #52635d;
+  border-bottom: 2px solid transparent;
+  color: var(--muted-foreground);
   background: transparent;
   cursor: pointer;
 }
 
 .tab[aria-selected='true'] {
-  border-color: #d85b30;
-  color: #153c34;
+  border-color: var(--primary);
+  color: var(--foreground);
   font-weight: 700;
 }
 
 .tab:focus-visible,
 .group-switcher:focus-visible {
-  outline: 3px solid #d85b30;
+  outline: 3px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -124,11 +125,11 @@ button {
   display: grid;
   min-height: 100%;
   place-items: center;
-  color: #153c34;
+  color: var(--foreground);
   font:
-    20px Georgia,
-    'Times New Roman',
-    serif;
+    20px ui-sans-serif,
+    system-ui,
+    sans-serif;
 }
 
 @media (max-width: 560px) {

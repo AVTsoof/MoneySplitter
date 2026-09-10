@@ -1,10 +1,10 @@
 .settings-tab {
-  font-family: 'Trebuchet MS', sans-serif;
+  font-family: inherit;
 }
 
 .settings-tab h3 {
   margin: 0 0 12px;
-  color: #153c34;
+  color: var(--foreground);
 }
 
 .member-list {
@@ -18,12 +18,12 @@
   align-items: center;
   gap: 8px;
   padding: 12px 0;
-  border-bottom: 1px solid #d4d8cd;
+  border-bottom: 1px solid var(--border);
 }
 
 .member-name {
   flex: 1 1 auto;
-  color: #153c34;
+  color: var(--foreground);
   font-weight: 700;
 }
 
@@ -33,25 +33,27 @@
   align-items: center;
   gap: 8px;
   flex: 1 1 auto;
-  color: #52635d;
+  color: var(--muted-foreground);
 }
 
 .member-list input,
 .add-member input {
   min-height: 38px;
   padding: 6px 8px;
-  border: 1px solid #8ba399;
-  border-radius: 4px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   font: inherit;
 }
 
 .settings-tab button {
   min-height: 38px;
   padding: 6px 12px;
-  border: 1px solid #447064;
-  border-radius: 4px;
-  color: #153c34;
-  background: transparent;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   cursor: pointer;
 }
 
@@ -62,18 +64,18 @@
 }
 
 .settings-error {
-  color: #b44623;
+  color: var(--destructive);
   font-weight: 700;
 }
 
 .currency-settings {
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid #d4d8cd;
+  border-top: 1px solid var(--border);
 }
 
 .currency-settings p {
-  color: #52635d;
+  color: var(--muted-foreground);
 }
 
 .currency-settings label {
@@ -81,24 +83,26 @@
   align-items: center;
   gap: 8px;
   margin-right: 8px;
-  color: #52635d;
+  color: var(--muted-foreground);
 }
 
 .currency-settings select {
   min-height: 38px;
   padding: 6px 8px;
-  border: 1px solid #8ba399;
-  border-radius: 4px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
   font: inherit;
 }
 
 .danger-zone {
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid #d4d8cd;
+  border-top: 1px solid var(--border);
 }
 
 .danger-zone button {
-  border-color: #b44623;
-  color: #b44623;
+  border-color: var(--destructive);
+  color: var(--destructive);
 }

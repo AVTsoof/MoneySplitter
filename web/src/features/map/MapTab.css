@@ -2,18 +2,19 @@
   width: 100%;
   height: min(62vh, 560px);
   min-height: 360px;
-  border: 1px solid #b7c5b5;
-  font-family: 'Trebuchet MS', sans-serif;
+  border: 1px solid var(--border);
+  font-family: inherit;
+  background: var(--card);
 }
 
 .debt-map .react-flow__node {
-  border: 1px solid #153c34;
+  border: 1px solid var(--primary);
   border-radius: 999px;
-  color: #153c34;
-  background: #f4f2ea;
+  color: var(--foreground);
+  background: var(--card);
   font-weight: 700;
 }
 
 .debt-map .react-flow__edge-path {
-  stroke: #437063;
+  stroke: var(--primary);
 }

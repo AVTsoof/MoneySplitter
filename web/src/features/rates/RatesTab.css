@@ -1,14 +1,14 @@
 .rates-tab {
-  font-family: 'Trebuchet MS', sans-serif;
+  font-family: inherit;
 }
 
 .rates-tab button {
   min-height: 40px;
   padding: 8px 12px;
-  border: 1px solid #447064;
-  border-radius: 4px;
-  color: #fff;
-  background: #153c34;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  color: var(--primary-foreground);
+  background: var(--primary);
   cursor: pointer;
 }
 
@@ -16,17 +16,17 @@
   margin: 16px 0 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #b7c5b5;
+  border-top: 1px solid var(--border);
 }
 
 .rates-list li {
   padding: 14px 0;
-  border-bottom: 1px solid #d4d8cd;
-  color: #153c34;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
   font-variant-numeric: tabular-nums;
 }
 
 .rates-error {
-  color: #b44623;
+  color: var(--destructive);
   font-weight: 700;
 }
