@@ -12,6 +12,7 @@ import {
   updateGroup,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
+import { getTheme, setTheme, type Theme } from '../../theme'
 import './SettingsTab.css'
 
 type SettingsTabProps = {
@@ -24,6 +25,7 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   const [draftName, setDraftName] = useState('')
   const [error, setError] = useState('')
   const [currency, setCurrency] = useState('USD')
+  const [theme, setThemePreference] = useState<Theme>(getTheme)
   const members = useLiveQuery(() => getMembers(groupId), [groupId])
   const group = useLiveQuery(() => getGroup(groupId), [groupId])
 
@@ -55,6 +57,11 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   async function addCurrency() {
     if (!availableCurrencies.includes(currency)) return
     await updateGroup(groupId, { activeCurrencies: [...loadedGroup.activeCurrencies, currency] })
+  }
+
+  function chooseTheme(nextTheme: Theme) {
+    setTheme(nextTheme)
+    setThemePreference(nextTheme)
   }
 
   return (
@@ -126,6 +133,22 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
         <button type="button" onClick={addCurrency} disabled={availableCurrencies.length === 0}>
           Add currency
         </button>
+      </section>
+
+      <section className="theme-settings" aria-labelledby="theme-heading">
+        <h3 id="theme-heading">Theme</h3>
+        <div className="theme-switch" role="group" aria-label="Theme">
+          {(['light', 'device', 'dark'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={theme === option}
+              onClick={() => chooseTheme(option)}
+            >
+              {option[0].toUpperCase() + option.slice(1)}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="danger-zone" aria-labelledby="delete-group-heading">

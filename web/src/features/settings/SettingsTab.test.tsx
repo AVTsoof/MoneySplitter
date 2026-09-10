@@ -8,6 +8,8 @@ import { SettingsTab } from './SettingsTab'
 
 beforeEach(async () => {
   await resetDatabase()
+  localStorage.clear()
+  document.documentElement.className = ''
 })
 
 const group = () => createGroup({ name: 'Trip', defaultCurrency: 'EUR', members: ['Alice', 'Bob'] })
@@ -86,5 +88,20 @@ describe('SettingsTab', () => {
 
     expect(await screen.findByText('EUR, USD')).toBeInTheDocument()
     expect((await getGroup(groupId))!.activeCurrencies).toEqual(['EUR', 'USD'])
+  })
+
+  it('defaults to Device and can select Dark', async () => {
+    const user = userEvent.setup()
+    const groupId = await group()
+    render(<SettingsTab groupId={groupId} />)
+
+    expect(await screen.findByRole('button', { name: 'Device' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await user.click(screen.getByRole('button', { name: 'Dark' }))
+
+    expect(document.documentElement).toHaveClass('dark')
+    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

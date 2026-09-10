@@ -102,6 +102,29 @@
   border-top: 1px solid var(--border);
 }
 
+.theme-settings {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.theme-switch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+}
+
+.theme-switch button {
+  border: 0;
+  border-radius: 0;
+}
+
+.theme-switch button[aria-pressed='true'] {
+  color: var(--accent-foreground);
+  background: var(--accent);
+}
+
 .danger-zone button {
   border-color: var(--destructive);
   color: var(--destructive);
