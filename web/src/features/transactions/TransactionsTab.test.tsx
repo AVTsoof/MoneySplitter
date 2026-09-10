@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { resetDatabase } from '../../data/db'
-import { seedExampleGroup } from '../../data/repository'
+import { addExpense, createGroup, getMembers, seedExampleGroup } from '../../data/repository'
 import { TransactionsTab } from './TransactionsTab'
 
 beforeEach(async () => {
@@ -95,5 +95,28 @@ describe('TransactionsTab', () => {
     fireEvent.click(within(row).getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('Airport train')).toBeInTheDocument()
+  })
+
+  it("shows each member's running bottom line", async () => {
+    const groupId = await createGroup({
+      name: 'Test',
+      defaultCurrency: 'EUR',
+      members: ['Alice', 'Bob'],
+    })
+    const members = await getMembers(groupId)
+    await addExpense({
+      groupId,
+      payerMemberId: members[0].id,
+      participantMemberIds: members.map((member) => member.id),
+      amount: '30.00',
+      currency: 'EUR',
+      description: 'Dinner',
+      strategy: { type: 'equal' },
+    })
+    render(<TransactionsTab groupId={groupId} />)
+
+    expect(await screen.findByText('The Bottom Line')).toBeInTheDocument()
+    expect(screen.getByText('Alice: +15.00 EUR')).toBeInTheDocument()
+    expect(screen.getByText('Bob: -15.00 EUR')).toBeInTheDocument()
   })
 })

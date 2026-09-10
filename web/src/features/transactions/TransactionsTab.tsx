@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { getNetBalances } from '../../core/ledger'
+import { loadGroupLedger } from '../../data/groupLedger'
 import {
   addExpense,
   addTransfer,
   deleteTransaction,
   getGroup,
-  getMembers,
-  getTransactions,
   updateTransaction,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
@@ -32,20 +32,24 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
   const [editedDescription, setEditedDescription] = useState('')
   const ledger = useLiveQuery(async () => {
-    const [group, members, transactions] = await Promise.all([
-      getGroup(groupId),
-      getMembers(groupId),
-      getTransactions(groupId),
-    ])
-    const memberNames = new Map(members.map((member) => [member.id, member.displayName]))
-    return { group, memberNames, members, transactions }
+    const [group, groupLedger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
+    const memberNames = new Map(
+      groupLedger.members.map((member) => [member.id, member.displayName]),
+    )
+    return {
+      group,
+      memberNames,
+      members: groupLedger.members,
+      netBalances: getNetBalances(groupLedger.transactions),
+      transactions: groupLedger.rows,
+    }
   }, [groupId])
 
   if (!ledger) {
     return <p>Loading transactions...</p>
   }
 
-  const { group, memberNames, members, transactions } = ledger
+  const { group, memberNames, members, netBalances, transactions } = ledger
   const defaultPayerId = payerMemberId || members[0]?.id || ''
 
   async function saveExpense(event: React.FormEvent<HTMLFormElement>) {
@@ -206,6 +210,24 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
           </button>
         </form>
       )}
+      <section className="running-balances" aria-labelledby="bottom-line-heading">
+        <h3 id="bottom-line-heading">The Bottom Line</h3>
+        {Object.entries(netBalances).map(([currency, balances]) => (
+          <ul key={currency}>
+            {members.map((member) => {
+              const balance = balances[member.displayName]
+              const amount = balance?.toFixed(2) ?? '0.00'
+              const sign = balance?.isNegative() ? '' : '+'
+              return (
+                <li key={member.id}>
+                  {member.displayName}: {sign}
+                  {amount} {currency}
+                </li>
+              )
+            })}
+          </ul>
+        ))}
+      </section>
       <p className="transaction-count">{transactions.length} entries</p>
       <ol className="transaction-list">
         {transactions.map((transaction) => {
