@@ -15,7 +15,14 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'Example Italy Trip' })).toBeInTheDocument()
+    expect(screen.getByText('💸')).toBeInTheDocument()
     expect(screen.getAllByRole('tab')).toHaveLength(6)
+    expect(screen.getByText('🧾')).toBeInTheDocument()
+    expect(screen.getByText('⚖️')).toBeInTheDocument()
+    expect(screen.getByText('🤝')).toBeInTheDocument()
+    expect(screen.getByText('🗺️')).toBeInTheDocument()
+    expect(screen.getByText('💱')).toBeInTheDocument()
+    expect(screen.getByText('⚙️')).toBeInTheDocument()
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Transactions')
 
     await user.click(screen.getByRole('tab', { name: 'Balances' }))

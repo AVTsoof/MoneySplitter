@@ -11,6 +11,14 @@ import './App.css'
 
 const tabs = ['Transactions', 'Balances', 'Settle Up', 'Map', 'Rates', 'Settings'] as const
 type Tab = (typeof tabs)[number]
+const tabIcons: Record<Tab, string> = {
+  Transactions: '🧾',
+  Balances: '⚖️',
+  'Settle Up': '🤝',
+  Map: '🗺️',
+  Rates: '💱',
+  Settings: '⚙️',
+}
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('Transactions')
@@ -32,7 +40,12 @@ function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <p className="eyebrow">MoneySplitter</p>
+        <p className="eyebrow">
+          <span aria-hidden="true" className="brand-icon">
+            💸
+          </span>
+          MoneySplitter
+        </p>
         <div className="group-title">
           <div>
             <h1>{group.name}</h1>
@@ -56,6 +69,9 @@ function App() {
               aria-controls="workspace-panel"
               onClick={() => setActiveTab(tab)}
             >
+              <span aria-hidden="true" className="tab-icon">
+                {tabIcons[tab]}
+              </span>
               {tab}
             </button>
           ))}

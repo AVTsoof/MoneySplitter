@@ -40,6 +40,11 @@ button {
   text-transform: uppercase;
 }
 
+.brand-icon {
+  margin-right: 6px;
+  font-size: 15px;
+}
+
 .group-title {
   display: flex;
   align-items: end;
@@ -89,6 +94,9 @@ button {
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex: 0 0 auto;
   min-height: 42px;
   padding: 8px 12px;
@@ -97,6 +105,11 @@ button {
   color: var(--muted-foreground);
   background: transparent;
   cursor: pointer;
+}
+
+.tab-icon {
+  font-size: 15px;
+  line-height: 1;
 }
 
 .tab[aria-selected='true'] {
