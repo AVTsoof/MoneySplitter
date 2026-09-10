@@ -25,10 +25,13 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [payerMemberId, setPayerMemberId] = useState('')
+  const [participantMemberIds, setParticipantMemberIds] = useState<Uuid[]>([])
+  const [currency, setCurrency] = useState('EUR')
   const [isTransferFormOpen, setIsTransferFormOpen] = useState(false)
   const [senderMemberId, setSenderMemberId] = useState('')
   const [receiverMemberId, setReceiverMemberId] = useState('')
   const [transferAmount, setTransferAmount] = useState('')
+  const [transferCurrency, setTransferCurrency] = useState('EUR')
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
   const [editedDescription, setEditedDescription] = useState('')
   const ledger = useLiveQuery(async () => {
@@ -51,6 +54,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
 
   const { group, memberNames, members, netBalances, transactions } = ledger
   const defaultPayerId = payerMemberId || members[0]?.id || ''
+  const activeCurrencies = group?.activeCurrencies ?? ['EUR']
 
   async function saveExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -59,15 +63,17 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     await addExpense({
       groupId,
       payerMemberId: defaultPayerId,
-      participantMemberIds: members.map((member) => member.id),
+      participantMemberIds,
       amount,
-      currency: 'EUR',
+      currency,
       description: description.trim(),
       strategy: { type: 'equal' },
     })
     setDescription('')
     setAmount('')
     setPayerMemberId('')
+    setParticipantMemberIds([])
+    setCurrency(group?.defaultCurrency ?? 'EUR')
     setIsFormOpen(false)
   }
 
@@ -82,12 +88,13 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
       senderMemberId: sender,
       receiverMemberId: receiver,
       amount: transferAmount,
-      currency: 'EUR',
+      currency: transferCurrency,
       description: `Transfer from ${memberNames.get(sender)} to ${memberNames.get(receiver)}`,
     })
     setSenderMemberId('')
     setReceiverMemberId('')
     setTransferAmount('')
+    setTransferCurrency(group?.defaultCurrency ?? 'EUR')
     setIsTransferFormOpen(false)
   }
 
@@ -100,10 +107,25 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
 
   return (
     <div className="transactions-tab">
-      <button className="add-bill" type="button" onClick={() => setIsFormOpen(true)}>
+      <button
+        className="add-bill"
+        type="button"
+        onClick={() => {
+          setParticipantMemberIds(members.map((member) => member.id))
+          setCurrency(group?.defaultCurrency ?? 'EUR')
+          setIsFormOpen(true)
+        }}
+      >
         Add bill
       </button>
-      <button className="add-bill" type="button" onClick={() => setIsTransferFormOpen(true)}>
+      <button
+        className="add-bill"
+        type="button"
+        onClick={() => {
+          setTransferCurrency(group?.defaultCurrency ?? 'EUR')
+          setIsTransferFormOpen(true)
+        }}
+      >
         Add transfer
       </button>
       <button
@@ -147,6 +169,16 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
             />
           </label>
           <label>
+            Currency
+            <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+              {activeCurrencies.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
             Paid by
             <select
               value={defaultPayerId}
@@ -159,6 +191,25 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               ))}
             </select>
           </label>
+          <fieldset className="participants">
+            <legend>Who was there?</legend>
+            {members.map((member) => (
+              <label key={member.id}>
+                <input
+                  type="checkbox"
+                  checked={participantMemberIds.includes(member.id)}
+                  onChange={() =>
+                    setParticipantMemberIds((current) =>
+                      current.includes(member.id)
+                        ? current.filter((id) => id !== member.id)
+                        : [...current, member.id],
+                    )
+                  }
+                />
+                {member.displayName}
+              </label>
+            ))}
+          </fieldset>
           <button type="submit">Save bill</button>
           <button type="button" onClick={() => setIsFormOpen(false)}>
             Cancel
@@ -203,6 +254,19 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               onChange={(event) => setTransferAmount(event.target.value)}
               required
             />
+          </label>
+          <label>
+            Currency
+            <select
+              value={transferCurrency}
+              onChange={(event) => setTransferCurrency(event.target.value)}
+            >
+              {activeCurrencies.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
           </label>
           <button type="submit">Save transfer</button>
           <button type="button" onClick={() => setIsTransferFormOpen(false)}>

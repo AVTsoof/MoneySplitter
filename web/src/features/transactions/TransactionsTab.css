@@ -37,6 +37,33 @@
   font: inherit;
 }
 
+.participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  border: 0;
+  padding: 0;
+}
+
+.participants legend {
+  width: 100%;
+  color: #153c34;
+  font-weight: 700;
+}
+
+.participants label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #52635d;
+  font-weight: 400;
+}
+
+.participants input {
+  min-height: auto;
+  padding: 0;
+}
+
 .bill-form button[type='button'] {
   color: #153c34;
   background: transparent;

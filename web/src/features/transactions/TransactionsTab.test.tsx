@@ -2,7 +2,13 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { resetDatabase } from '../../data/db'
-import { addExpense, createGroup, getMembers, seedExampleGroup } from '../../data/repository'
+import {
+  addExpense,
+  createGroup,
+  getMembers,
+  seedExampleGroup,
+  updateGroup,
+} from '../../data/repository'
 import { TransactionsTab } from './TransactionsTab'
 
 beforeEach(async () => {
@@ -41,6 +47,48 @@ describe('TransactionsTab', () => {
     const row = screen.getByText('Gelato').closest('li')!
     expect(within(row).getByText('25.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
+  })
+
+  it('lets the payer choose bill participants', async () => {
+    const groupId = await createGroup({
+      name: 'Test',
+      defaultCurrency: 'EUR',
+      members: ['Alice', 'Bob', 'Charlie'],
+    })
+    const members = await getMembers(groupId)
+    render(<TransactionsTab groupId={groupId} />)
+
+    await screen.findByText('0 entries')
+    fireEvent.click(screen.getByRole('button', { name: 'Add bill' }))
+    fireEvent.change(screen.getByLabelText('What was it for?'), { target: { value: 'Coffee' } })
+    fireEvent.change(screen.getByLabelText('How much?'), { target: { value: '20.00' } })
+    fireEvent.click(screen.getByLabelText('Charlie'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save bill' }))
+
+    expect(await screen.findByText('1 entries')).toBeInTheDocument()
+    expect(await screen.findByText('Alice: +10.00 EUR')).toBeInTheDocument()
+    expect(screen.getByText('Bob: -10.00 EUR')).toBeInTheDocument()
+    expect(screen.getByText('Charlie: +0.00 EUR')).toBeInTheDocument()
+    expect(members).toHaveLength(3)
+  })
+
+  it('records a bill in an active group currency', async () => {
+    const groupId = await createGroup({
+      name: 'Test',
+      defaultCurrency: 'EUR',
+      members: ['Alice'],
+    })
+    await updateGroup(groupId, { activeCurrencies: ['EUR', 'USD'] })
+    render(<TransactionsTab groupId={groupId} />)
+
+    await screen.findByText('0 entries')
+    fireEvent.click(screen.getByRole('button', { name: 'Add bill' }))
+    fireEvent.change(screen.getByLabelText('What was it for?'), { target: { value: 'Coffee' } })
+    fireEvent.change(screen.getByLabelText('How much?'), { target: { value: '5.00' } })
+    fireEvent.change(screen.getByLabelText('Currency'), { target: { value: 'USD' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save bill' }))
+
+    expect(await screen.findByText('5.00 USD')).toBeInTheDocument()
   })
 
   it('records a transfer between group members', async () => {
