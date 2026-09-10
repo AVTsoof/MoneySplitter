@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { getNetBalances } from '../../core/ledger'
+import { getBalancesInCurrency, getNetBalances } from '../../core/ledger'
+import { getCachedExchangeRates } from '../../data/exchangeRates'
 import { loadGroupLedger } from '../../data/groupLedger'
+import { getGroup } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import { MemberBadge } from '../common/MemberBadge'
 import './BalancesTab.css'
@@ -13,13 +15,17 @@ const formatMoney = (amount: string, currency: string) => `${Number(amount).toFi
 
 export function BalancesTab({ groupId }: BalancesTabProps) {
   const balances = useLiveQuery(async () => {
-    const { members, transactions } = await loadGroupLedger(groupId)
-    return { members, net: getNetBalances(transactions) }
+    const [group, ledger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
+    if (!group) return null
+    const rates = await getCachedExchangeRates(group.defaultCurrency)
+    return {
+      members: ledger.members,
+      currency: group.defaultCurrency,
+      net: getBalancesInCurrency(getNetBalances(ledger.transactions), group.defaultCurrency, rates),
+    }
   }, [groupId])
 
   if (!balances) return <p>Loading balances...</p>
-
-  const currencies = Object.keys(balances.net)
 
   return (
     <div className="balances-tab">
@@ -27,11 +33,7 @@ export function BalancesTab({ groupId }: BalancesTabProps) {
         <thead>
           <tr>
             <th scope="col">Member</th>
-            {currencies.map((currency) => (
-              <th key={currency} scope="col">
-                {currency}
-              </th>
-            ))}
+            <th scope="col">{balances.currency}</th>
           </tr>
         </thead>
         <tbody>
@@ -40,14 +42,12 @@ export function BalancesTab({ groupId }: BalancesTabProps) {
               <th scope="row">
                 <MemberBadge member={member} />
               </th>
-              {currencies.map((currency) => {
-                const balance = balances.net[currency][member.displayName]
-                return (
-                  <td key={currency} className={balance?.isNegative() ? 'owes' : 'owed'}>
-                    {formatMoney(balance?.toString() ?? '0', currency)}
-                  </td>
-                )
-              })}
+              <td className={balances.net[member.displayName]?.isNegative() ? 'owes' : 'owed'}>
+                {formatMoney(
+                  balances.net[member.displayName]?.toString() ?? '0',
+                  balances.currency,
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

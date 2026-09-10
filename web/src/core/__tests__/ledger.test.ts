@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js'
 import { describe, expect, it } from 'vitest'
-import { getNetBalances, getUnifiedBalances } from '../ledger'
+import { getBalancesInCurrency, getNetBalances, getUnifiedBalances } from '../ledger'
 import type { Transaction } from '../types'
 import netBalanceCases from './fixtures/net-balances.json'
 import unifiedCases from './fixtures/unified-balances.json'
@@ -50,5 +50,17 @@ describe('net balances', () => {
 describe('unified balances', () => {
   it.each(unified)('$name', ({ transactions, baseCurrency, rates, expected }) => {
     expect(at2dp(getUnifiedBalances(transactions, baseCurrency, rates))).toEqual(at2dp(expected))
+  })
+})
+
+describe('reporting currency balances', () => {
+  it('converts cached base rates into the requested currency', () => {
+    expect(
+      at2dp(
+        getBalancesInCurrency({ USD: { Alice: new Decimal('5'), Bob: new Decimal('-5') } }, 'EUR', {
+          USD: '1.08',
+        }),
+      ),
+    ).toEqual({ Alice: '4.63', Bob: '-4.63' })
   })
 })
