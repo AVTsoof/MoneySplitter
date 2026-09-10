@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { getSupportedCurrencyCodes } from '../../core/currency'
 import {
   addMember,
+  getGroup,
   getMembers,
   memberHasTransactions,
   removeMember,
   renameMember,
+  updateGroup,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import './SettingsTab.css'
@@ -19,9 +22,16 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   const [editingId, setEditingId] = useState<Uuid | null>(null)
   const [draftName, setDraftName] = useState('')
   const [error, setError] = useState('')
+  const [currency, setCurrency] = useState('USD')
   const members = useLiveQuery(() => getMembers(groupId), [groupId])
+  const group = useLiveQuery(() => getGroup(groupId), [groupId])
 
-  if (!members) return <p>Loading settings...</p>
+  if (!members || !group) return <p>Loading settings...</p>
+
+  const loadedGroup = group
+  const availableCurrencies = getSupportedCurrencyCodes().filter(
+    (code) => !loadedGroup.activeCurrencies.includes(code),
+  )
 
   async function submitNewMember(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -39,6 +49,11 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
     }
     setError('')
     await removeMember(memberId)
+  }
+
+  async function addCurrency() {
+    if (!availableCurrencies.includes(currency)) return
+    await updateGroup(groupId, { activeCurrencies: [...loadedGroup.activeCurrencies, currency] })
   }
 
   return (
@@ -93,6 +108,24 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
         </label>
         <button type="submit">Add member</button>
       </form>
+
+      <section className="currency-settings" aria-labelledby="currencies-heading">
+        <h3 id="currencies-heading">Currencies</h3>
+        <p>{loadedGroup.activeCurrencies.join(', ')}</p>
+        <label>
+          Add currency
+          <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+            {availableCurrencies.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={addCurrency} disabled={availableCurrencies.length === 0}>
+          Add currency
+        </button>
+      </section>
     </div>
   )
 }

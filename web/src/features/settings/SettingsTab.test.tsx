@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetDatabase } from '../../data/db'
-import { createGroup, addExpense, getMembers } from '../../data/repository'
+import { createGroup, addExpense, getGroup, getMembers } from '../../data/repository'
 import { SettingsTab } from './SettingsTab'
 
 beforeEach(async () => {
@@ -74,5 +74,17 @@ describe('SettingsTab', () => {
       await screen.findByText('Bob appears in transactions and cannot be removed.'),
     ).toBeInTheDocument()
     expect(await getMembers(groupId)).toHaveLength(2)
+  })
+
+  it('adds an active currency', async () => {
+    const user = userEvent.setup()
+    const groupId = await group()
+    render(<SettingsTab groupId={groupId} />)
+
+    await user.selectOptions(await screen.findByLabelText('Add currency'), 'USD')
+    await user.click(screen.getByRole('button', { name: 'Add currency' }))
+
+    expect(await screen.findByText('EUR, USD')).toBeInTheDocument()
+    expect((await getGroup(groupId))!.activeCurrencies).toEqual(['EUR', 'USD'])
   })
 })

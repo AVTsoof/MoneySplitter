@@ -65,3 +65,29 @@
   color: #b44623;
   font-weight: 700;
 }
+
+.currency-settings {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #d4d8cd;
+}
+
+.currency-settings p {
+  color: #52635d;
+}
+
+.currency-settings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 8px;
+  color: #52635d;
+}
+
+.currency-settings select {
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid #8ba399;
+  border-radius: 4px;
+  font: inherit;
+}
