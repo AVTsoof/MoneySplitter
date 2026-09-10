@@ -2,6 +2,46 @@
   font-family: 'Trebuchet MS', sans-serif;
 }
 
+.add-bill,
+.bill-form button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #447064;
+  border-radius: 4px;
+  color: #fff;
+  background: #153c34;
+  cursor: pointer;
+}
+
+.bill-form {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #b7c5b5;
+}
+
+.bill-form label {
+  display: grid;
+  gap: 6px;
+  color: #153c34;
+  font-weight: 700;
+}
+
+.bill-form input,
+.bill-form select {
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid #8ba399;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.bill-form button[type='button'] {
+  color: #153c34;
+  background: transparent;
+}
+
 .transaction-count {
   margin: 0 0 12px;
   color: #437063;
