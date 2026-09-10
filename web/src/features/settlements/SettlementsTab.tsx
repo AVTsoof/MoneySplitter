@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { getNetBalances } from '../../core/ledger'
+import { getBalancesInCurrency, getNetBalances } from '../../core/ledger'
 import { simplifyDebts } from '../../core/debtSimplifier'
+import { getCachedExchangeRates } from '../../data/exchangeRates'
 import { loadGroupLedger } from '../../data/groupLedger'
-import { addTransfer } from '../../data/repository'
+import { addTransfer, getGroup } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import { MemberBadge } from '../common/MemberBadge'
 import './SettlementsTab.css'
@@ -13,10 +14,19 @@ type SettlementsTabProps = {
 
 export function SettlementsTab({ groupId }: SettlementsTabProps) {
   const plan = useLiveQuery(async () => {
-    const { members, transactions } = await loadGroupLedger(groupId)
+    const [group, ledger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
+    if (!group) return null
+    const { members, transactions } = ledger
     const idsByName = new Map(members.map((member) => [member.displayName, member.id]))
     const membersByName = new Map(members.map((member) => [member.displayName, member]))
-    const byCurrency = simplifyDebts(getNetBalances(transactions))
+    const rates = await getCachedExchangeRates(group.defaultCurrency)
+    const byCurrency = simplifyDebts({
+      [group.defaultCurrency]: getBalancesInCurrency(
+        getNetBalances(transactions),
+        group.defaultCurrency,
+        rates,
+      ),
+    })
 
     return {
       idsByName,

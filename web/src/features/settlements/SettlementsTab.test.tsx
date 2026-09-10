@@ -2,8 +2,14 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { resetDatabase } from '../../data/db'
-import { addExpense, createGroup, getMembers, getTransactions } from '../../data/repository'
+import { db, resetDatabase } from '../../data/db'
+import {
+  addExpense,
+  createGroup,
+  getMembers,
+  getTransactions,
+  updateGroup,
+} from '../../data/repository'
 import { SettlementsTab } from './SettlementsTab'
 
 beforeEach(async () => {
@@ -53,5 +59,29 @@ describe('SettlementsTab', () => {
     const transactions = await getTransactions(groupId)
     const transfer = transactions.find((t) => t.type === 'transfer')!
     expect(transfer.amount).toBe('15.00')
+  })
+
+  it('uses the group default currency for converted settlements', async () => {
+    const groupId = await twoPersonGroup()
+    await updateGroup(groupId, { activeCurrencies: ['EUR', 'USD'] })
+    await db.exchangeRates.add({
+      base: 'EUR',
+      rates: { USD: '1.08' },
+      fetchedAt: new Date().toISOString(),
+    })
+    const members = await getMembers(groupId)
+    await addExpense({
+      groupId,
+      payerMemberId: members[0].id,
+      participantMemberIds: members.map((member) => member.id),
+      amount: '10.00',
+      currency: 'USD',
+      description: 'Coffee',
+      strategy: { type: 'equal' },
+    })
+    render(<SettlementsTab groupId={groupId} />)
+
+    expect(await screen.findByText('19.63 EUR')).toBeInTheDocument()
+    expect(screen.queryByText('5.00 USD')).not.toBeInTheDocument()
   })
 })
