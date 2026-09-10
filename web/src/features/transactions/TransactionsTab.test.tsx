@@ -41,4 +41,25 @@ describe('TransactionsTab', () => {
     expect(within(row).getByText('25.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
   })
+
+  it('records a transfer between group members', async () => {
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    await screen.findByText('34 entries')
+    fireEvent.click(screen.getByRole('button', { name: 'Add transfer' }))
+    fireEvent.change(screen.getByLabelText('From'), {
+      target: { value: '2ba7fcb7-4d24-4419-acf2-000000000003' },
+    })
+    fireEvent.change(screen.getByLabelText('To'), {
+      target: { value: '2ba7fcb7-4d24-4419-acf2-000000000001' },
+    })
+    fireEvent.change(screen.getByLabelText('How much?'), { target: { value: '10.00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save transfer' }))
+
+    expect(await screen.findByText('35 entries')).toBeInTheDocument()
+    const row = screen.getByText('Transfer from Bob to Alice').closest('li')!
+    expect(within(row).getByText('10.00 EUR')).toBeInTheDocument()
+    expect(within(row).getByText('Bob paid Alice')).toBeInTheDocument()
+  })
 })

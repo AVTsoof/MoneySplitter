@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addExpense, getMembers, getTransactions } from '../../data/repository'
+import { addExpense, addTransfer, getMembers, getTransactions } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import './TransactionsTab.css'
 
@@ -16,6 +16,10 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [payerMemberId, setPayerMemberId] = useState('')
+  const [isTransferFormOpen, setIsTransferFormOpen] = useState(false)
+  const [senderMemberId, setSenderMemberId] = useState('')
+  const [receiverMemberId, setReceiverMemberId] = useState('')
+  const [transferAmount, setTransferAmount] = useState('')
   const ledger = useLiveQuery(async () => {
     const [members, transactions] = await Promise.all([
       getMembers(groupId),
@@ -51,10 +55,33 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     setIsFormOpen(false)
   }
 
+  async function saveTransfer(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const sender = senderMemberId || members[0]?.id
+    const receiver = receiverMemberId || members[1]?.id
+    if (!sender || !receiver || sender === receiver || !transferAmount) return
+
+    await addTransfer({
+      groupId,
+      senderMemberId: sender,
+      receiverMemberId: receiver,
+      amount: transferAmount,
+      currency: 'EUR',
+      description: `Transfer from ${memberNames.get(sender)} to ${memberNames.get(receiver)}`,
+    })
+    setSenderMemberId('')
+    setReceiverMemberId('')
+    setTransferAmount('')
+    setIsTransferFormOpen(false)
+  }
+
   return (
     <div className="transactions-tab">
       <button className="add-bill" type="button" onClick={() => setIsFormOpen(true)}>
         Add bill
+      </button>
+      <button className="add-bill" type="button" onClick={() => setIsTransferFormOpen(true)}>
+        Add transfer
       </button>
       {isFormOpen && (
         <form className="bill-form" onSubmit={saveExpense}>
@@ -92,6 +119,51 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
           </label>
           <button type="submit">Save bill</button>
           <button type="button" onClick={() => setIsFormOpen(false)}>
+            Cancel
+          </button>
+        </form>
+      )}
+      {isTransferFormOpen && (
+        <form className="bill-form" onSubmit={saveTransfer}>
+          <label>
+            From
+            <select
+              value={senderMemberId}
+              onChange={(event) => setSenderMemberId(event.target.value)}
+            >
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            To
+            <select
+              value={receiverMemberId || members[1]?.id || ''}
+              onChange={(event) => setReceiverMemberId(event.target.value)}
+            >
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            How much?
+            <input
+              min="0.01"
+              step="0.01"
+              type="number"
+              value={transferAmount}
+              onChange={(event) => setTransferAmount(event.target.value)}
+              required
+            />
+          </label>
+          <button type="submit">Save transfer</button>
+          <button type="button" onClick={() => setIsTransferFormOpen(false)}>
             Cancel
           </button>
         </form>
