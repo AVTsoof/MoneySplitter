@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listGroups, seedExampleGroup } from './data/repository'
 import { BalancesTab } from './features/balances/BalancesTab'
+import { RatesTab } from './features/rates/RatesTab'
 import { SettlementsTab } from './features/settlements/SettlementsTab'
 import { SettingsTab } from './features/settings/SettingsTab'
 import { TransactionsTab } from './features/transactions/TransactionsTab'
@@ -68,6 +69,8 @@ function App() {
             <BalancesTab groupId={group.id} />
           ) : activeTab === 'Settle Up' ? (
             <SettlementsTab groupId={group.id} />
+          ) : activeTab === 'Rates' ? (
+            <RatesTab groupId={group.id} />
           ) : activeTab === 'Settings' ? (
             <SettingsTab groupId={group.id} />
           ) : (

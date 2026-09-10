@@ -1,0 +1,32 @@
+.rates-tab {
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+.rates-tab button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #447064;
+  border-radius: 4px;
+  color: #fff;
+  background: #153c34;
+  cursor: pointer;
+}
+
+.rates-list {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid #b7c5b5;
+}
+
+.rates-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid #d4d8cd;
+  color: #153c34;
+  font-variant-numeric: tabular-nums;
+}
+
+.rates-error {
+  color: #b44623;
+  font-weight: 700;
+}
