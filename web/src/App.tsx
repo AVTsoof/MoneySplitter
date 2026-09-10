@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listGroups, seedExampleGroup } from './data/repository'
+import { BalancesTab } from './features/balances/BalancesTab'
 import { TransactionsTab } from './features/transactions/TransactionsTab'
 import './App.css'
 
@@ -61,6 +62,8 @@ function App() {
           <h2>{activeTab}</h2>
           {activeTab === 'Transactions' ? (
             <TransactionsTab groupId={group.id} />
+          ) : activeTab === 'Balances' ? (
+            <BalancesTab groupId={group.id} />
           ) : (
             <p>
               {activeTab} for {group.name} will appear here.

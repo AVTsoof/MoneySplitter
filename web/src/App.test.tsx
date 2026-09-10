@@ -21,5 +21,7 @@ describe('App', () => {
     await user.click(screen.getByRole('tab', { name: 'Balances' }))
 
     expect(screen.getByRole('tabpanel')).toHaveTextContent('Balances')
+    expect(await screen.findByRole('table', { name: 'Net balances' })).toBeInTheDocument()
+    expect(screen.getByRole('row', { name: /Alice/ })).toBeInTheDocument()
   })
 })

@@ -1,0 +1,28 @@
+.balances-tab {
+  overflow-x: auto;
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+.balances-tab table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.balances-tab th,
+.balances-tab td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #d4d8cd;
+  text-align: left;
+}
+
+.balances-tab td {
+  font-variant-numeric: tabular-nums;
+}
+
+.balances-tab .owed {
+  color: #287457;
+}
+
+.balances-tab .owes {
+  color: #b44623;
+}
