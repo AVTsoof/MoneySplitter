@@ -1,0 +1,19 @@
+.debt-map {
+  width: 100%;
+  height: min(62vh, 560px);
+  min-height: 360px;
+  border: 1px solid #b7c5b5;
+  font-family: 'Trebuchet MS', sans-serif;
+}
+
+.debt-map .react-flow__node {
+  border: 1px solid #153c34;
+  border-radius: 999px;
+  color: #153c34;
+  background: #f4f2ea;
+  font-weight: 700;
+}
+
+.debt-map .react-flow__edge-path {
+  stroke: #437063;
+}

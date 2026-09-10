@@ -24,6 +24,7 @@
     ]
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.6",
     "decimal.js": "^10.6.0",
     "dexie": "^4.4.5",
     "dexie-react-hooks": "^4.4.0",

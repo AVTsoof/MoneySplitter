@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@xyflow/react/dist/style.css';
 
 /* Any library stylesheet (e.g. @xyflow/react) must be imported AFTER the line
    above, and only from this file, or Tailwind v4 will override it. */
