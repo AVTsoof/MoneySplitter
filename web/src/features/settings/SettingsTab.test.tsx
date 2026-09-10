@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetDatabase } from '../../data/db'
-import { createGroup, addExpense, getGroup, getMembers } from '../../data/repository'
+import { createGroup, addExpense, getGroup, getMembers, updateGroup } from '../../data/repository'
 import { SettingsTab } from './SettingsTab'
 
 beforeEach(async () => {
@@ -88,6 +88,18 @@ describe('SettingsTab', () => {
 
     expect(await screen.findByText('EUR, USD')).toBeInTheDocument()
     expect((await getGroup(groupId))!.activeCurrencies).toEqual(['EUR', 'USD'])
+  })
+
+  it('sets an active currency as the group default', async () => {
+    const user = userEvent.setup()
+    const groupId = await group()
+    await updateGroup(groupId, { activeCurrencies: ['EUR', 'USD'] })
+    render(<SettingsTab groupId={groupId} />)
+
+    await user.selectOptions(await screen.findByLabelText('Default currency'), 'USD')
+    await user.click(screen.getByRole('button', { name: 'Save default currency' }))
+
+    expect((await getGroup(groupId))!.defaultCurrency).toBe('USD')
   })
 
   it('defaults to Device and can select Dark', async () => {

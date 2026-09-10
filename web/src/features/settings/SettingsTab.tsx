@@ -25,6 +25,7 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   const [draftName, setDraftName] = useState('')
   const [error, setError] = useState('')
   const [currency, setCurrency] = useState('USD')
+  const [defaultCurrency, setDefaultCurrency] = useState('')
   const [theme, setThemePreference] = useState<Theme>(getTheme)
   const members = useLiveQuery(() => getMembers(groupId), [groupId])
   const group = useLiveQuery(() => getGroup(groupId), [groupId])
@@ -57,6 +58,13 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   async function addCurrency() {
     if (!availableCurrencies.includes(currency)) return
     await updateGroup(groupId, { activeCurrencies: [...loadedGroup.activeCurrencies, currency] })
+  }
+
+  async function saveDefaultCurrency() {
+    const nextCurrency = defaultCurrency || loadedGroup.defaultCurrency
+    if (!loadedGroup.activeCurrencies.includes(nextCurrency)) return
+    await updateGroup(groupId, { defaultCurrency: nextCurrency })
+    setDefaultCurrency('')
   }
 
   function chooseTheme(nextTheme: Theme) {
@@ -132,6 +140,22 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
         </label>
         <button type="button" onClick={addCurrency} disabled={availableCurrencies.length === 0}>
           Add currency
+        </button>
+        <label className="default-currency">
+          Default currency
+          <select
+            value={defaultCurrency || loadedGroup.defaultCurrency}
+            onChange={(event) => setDefaultCurrency(event.target.value)}
+          >
+            {loadedGroup.activeCurrencies.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={saveDefaultCurrency}>
+          Save default currency
         </button>
       </section>
 
