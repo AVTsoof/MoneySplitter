@@ -301,6 +301,9 @@ describe('TransactionsTab', () => {
 
     expect(await screen.findByRole('heading', { name: '2026-01-02' })).toBeInTheDocument()
     expect(screen.getByText(/2026-01-02 10:00/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '2026-01-02' }).closest('li')).not.toHaveTextContent(
+      'Newer',
+    )
     const entries = screen
       .getAllByRole('listitem')
       .filter((item) => item.textContent?.includes('Older') || item.textContent?.includes('Newer'))

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getNetBalances } from '../../core/ledger'
 import { loadGroupLedger } from '../../data/groupLedger'
@@ -388,248 +388,259 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               : `${memberNames.get(transaction.senderMemberId!)} paid ${memberNames.get(transaction.receiverMemberId!)}`
 
           return (
-            <li key={transaction.id} className="transaction-row">
-              <div>
-                {showGroup && <h3 className="transaction-group">{groupLabel(transaction)}</h3>}
-                {editingTransactionId === transaction.id ? (
-                  <form
-                    className="bill-form"
-                    aria-label="Edit bill"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      void saveTransaction(transaction)
-                    }}
-                  >
-                    <label>
-                      <span className="edit-caption">
-                        Description{' '}
-                        {changedMarker(editDraft?.description !== originalDraft?.description)}
-                      </span>
-                      <input
-                        aria-label="Description"
-                        data-changed={editDraft?.description !== originalDraft?.description}
-                        value={editDraft?.description ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(
-                            (draft) => draft && { ...draft, description: event.target.value },
-                          )
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span className="edit-caption">
-                        Amount {changedMarker(editDraft?.amount !== originalDraft?.amount)}
-                      </span>
-                      <input
-                        data-changed={editDraft?.amount !== originalDraft?.amount}
-                        min="0.01"
-                        step="0.01"
-                        type="number"
-                        value={editDraft?.amount ?? ''}
-                        onChange={(event) =>
-                          setEditDraft((draft) => draft && { ...draft, amount: event.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span className="edit-caption">
-                        Currency {changedMarker(editDraft?.currency !== originalDraft?.currency)}
-                      </span>
-                      <select
-                        data-changed={editDraft?.currency !== originalDraft?.currency}
-                        value={editDraft?.currency ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(
-                            (draft) => draft && { ...draft, currency: event.target.value },
-                          )
-                        }
-                      >
-                        {activeCurrencies.map((code) => (
-                          <option key={code} value={code}>
-                            {code}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span className="edit-caption">
-                        Timestamp{' '}
-                        {changedMarker(editDraft?.occurredAt !== originalDraft?.occurredAt)}
-                      </span>
-                      <input
-                        data-changed={editDraft?.occurredAt !== originalDraft?.occurredAt}
-                        type="datetime-local"
-                        value={editDraft?.occurredAt.slice(0, 16) ?? ''}
-                        onChange={(event) =>
-                          setEditDraft(
-                            (draft) =>
-                              draft && {
-                                ...draft,
-                                occurredAt: new Date(event.target.value).toISOString(),
-                              },
-                          )
-                        }
-                      />
-                    </label>
-                    {transaction.type === 'expense' && (
-                      <>
-                        <label>
-                          <span className="edit-caption">
-                            Paid by{' '}
-                            {changedMarker(
-                              editDraft?.payerMemberId !== originalDraft?.payerMemberId,
-                            )}
-                          </span>
-                          <select
-                            data-changed={editDraft?.payerMemberId !== originalDraft?.payerMemberId}
-                            value={editDraft?.payerMemberId ?? ''}
-                            onChange={(event) =>
-                              setEditDraft(
-                                (draft) => draft && { ...draft, payerMemberId: event.target.value },
-                              )
-                            }
-                          >
-                            {members.map((member) => (
-                              <option key={member.id} value={member.id}>
-                                {member.displayName}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <fieldset className="participants">
-                          <legend>Who was there?</legend>
-                          {members.map((member) => (
-                            <label key={member.id}>
-                              <input
-                                type="checkbox"
-                                checked={
-                                  editDraft?.participantMemberIds.includes(member.id) ?? false
-                                }
-                                onChange={() =>
-                                  setEditDraft(
-                                    (draft) =>
-                                      draft && {
-                                        ...draft,
-                                        participantMemberIds: draft.participantMemberIds.includes(
-                                          member.id,
-                                        )
-                                          ? draft.participantMemberIds.filter(
-                                              (id) => id !== member.id,
-                                            )
-                                          : [...draft.participantMemberIds, member.id],
-                                      },
-                                  )
-                                }
-                              />
-                              {member.displayName}
-                            </label>
-                          ))}
-                        </fieldset>
-                      </>
-                    )}
-                    {transaction.type === 'transfer' && (
-                      <>
-                        <label>
-                          <span className="edit-caption">
-                            From{' '}
-                            {changedMarker(
-                              editDraft?.senderMemberId !== originalDraft?.senderMemberId,
-                            )}
-                          </span>
-                          <select
-                            data-changed={
-                              editDraft?.senderMemberId !== originalDraft?.senderMemberId
-                            }
-                            value={editDraft?.senderMemberId ?? ''}
-                            onChange={(event) =>
-                              setEditDraft(
-                                (draft) =>
-                                  draft && { ...draft, senderMemberId: event.target.value },
-                              )
-                            }
-                          >
-                            {members.map((member) => (
-                              <option key={member.id} value={member.id}>
-                                {member.displayName}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          <span className="edit-caption">
-                            To{' '}
-                            {changedMarker(
-                              editDraft?.receiverMemberId !== originalDraft?.receiverMemberId,
-                            )}
-                          </span>
-                          <select
-                            data-changed={
-                              editDraft?.receiverMemberId !== originalDraft?.receiverMemberId
-                            }
-                            value={editDraft?.receiverMemberId ?? ''}
-                            onChange={(event) =>
-                              setEditDraft(
-                                (draft) =>
-                                  draft && { ...draft, receiverMemberId: event.target.value },
-                              )
-                            }
-                          >
-                            {members.map((member) => (
-                              <option key={member.id} value={member.id}>
-                                {member.displayName}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </>
-                    )}
-                    <button type="submit">Save changes</button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingTransactionId(null)
-                        setEditDraft(null)
-                        setOriginalDraft(null)
+            <Fragment key={transaction.id}>
+              {showGroup && (
+                <li className="transaction-group-row">
+                  <h3 className="transaction-group">{groupLabel(transaction)}</h3>
+                </li>
+              )}
+              <li className="transaction-row">
+                <div>
+                  {editingTransactionId === transaction.id ? (
+                    <form
+                      className="bill-form"
+                      aria-label="Edit bill"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        void saveTransaction(transaction)
                       }}
                     >
-                      Cancel
+                      <label>
+                        <span className="edit-caption">
+                          Description{' '}
+                          {changedMarker(editDraft?.description !== originalDraft?.description)}
+                        </span>
+                        <input
+                          aria-label="Description"
+                          data-changed={editDraft?.description !== originalDraft?.description}
+                          value={editDraft?.description ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(
+                              (draft) => draft && { ...draft, description: event.target.value },
+                            )
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span className="edit-caption">
+                          Amount {changedMarker(editDraft?.amount !== originalDraft?.amount)}
+                        </span>
+                        <input
+                          data-changed={editDraft?.amount !== originalDraft?.amount}
+                          min="0.01"
+                          step="0.01"
+                          type="number"
+                          value={editDraft?.amount ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(
+                              (draft) => draft && { ...draft, amount: event.target.value },
+                            )
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span className="edit-caption">
+                          Currency {changedMarker(editDraft?.currency !== originalDraft?.currency)}
+                        </span>
+                        <select
+                          data-changed={editDraft?.currency !== originalDraft?.currency}
+                          value={editDraft?.currency ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(
+                              (draft) => draft && { ...draft, currency: event.target.value },
+                            )
+                          }
+                        >
+                          {activeCurrencies.map((code) => (
+                            <option key={code} value={code}>
+                              {code}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span className="edit-caption">
+                          Timestamp{' '}
+                          {changedMarker(editDraft?.occurredAt !== originalDraft?.occurredAt)}
+                        </span>
+                        <input
+                          data-changed={editDraft?.occurredAt !== originalDraft?.occurredAt}
+                          type="datetime-local"
+                          value={editDraft?.occurredAt.slice(0, 16) ?? ''}
+                          onChange={(event) =>
+                            setEditDraft(
+                              (draft) =>
+                                draft && {
+                                  ...draft,
+                                  occurredAt: new Date(event.target.value).toISOString(),
+                                },
+                            )
+                          }
+                        />
+                      </label>
+                      {transaction.type === 'expense' && (
+                        <>
+                          <label>
+                            <span className="edit-caption">
+                              Paid by{' '}
+                              {changedMarker(
+                                editDraft?.payerMemberId !== originalDraft?.payerMemberId,
+                              )}
+                            </span>
+                            <select
+                              data-changed={
+                                editDraft?.payerMemberId !== originalDraft?.payerMemberId
+                              }
+                              value={editDraft?.payerMemberId ?? ''}
+                              onChange={(event) =>
+                                setEditDraft(
+                                  (draft) =>
+                                    draft && { ...draft, payerMemberId: event.target.value },
+                                )
+                              }
+                            >
+                              {members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.displayName}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <fieldset className="participants">
+                            <legend>Who was there?</legend>
+                            {members.map((member) => (
+                              <label key={member.id}>
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    editDraft?.participantMemberIds.includes(member.id) ?? false
+                                  }
+                                  onChange={() =>
+                                    setEditDraft(
+                                      (draft) =>
+                                        draft && {
+                                          ...draft,
+                                          participantMemberIds: draft.participantMemberIds.includes(
+                                            member.id,
+                                          )
+                                            ? draft.participantMemberIds.filter(
+                                                (id) => id !== member.id,
+                                              )
+                                            : [...draft.participantMemberIds, member.id],
+                                        },
+                                    )
+                                  }
+                                />
+                                {member.displayName}
+                              </label>
+                            ))}
+                          </fieldset>
+                        </>
+                      )}
+                      {transaction.type === 'transfer' && (
+                        <>
+                          <label>
+                            <span className="edit-caption">
+                              From{' '}
+                              {changedMarker(
+                                editDraft?.senderMemberId !== originalDraft?.senderMemberId,
+                              )}
+                            </span>
+                            <select
+                              data-changed={
+                                editDraft?.senderMemberId !== originalDraft?.senderMemberId
+                              }
+                              value={editDraft?.senderMemberId ?? ''}
+                              onChange={(event) =>
+                                setEditDraft(
+                                  (draft) =>
+                                    draft && { ...draft, senderMemberId: event.target.value },
+                                )
+                              }
+                            >
+                              {members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.displayName}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <span className="edit-caption">
+                              To{' '}
+                              {changedMarker(
+                                editDraft?.receiverMemberId !== originalDraft?.receiverMemberId,
+                              )}
+                            </span>
+                            <select
+                              data-changed={
+                                editDraft?.receiverMemberId !== originalDraft?.receiverMemberId
+                              }
+                              value={editDraft?.receiverMemberId ?? ''}
+                              onChange={(event) =>
+                                setEditDraft(
+                                  (draft) =>
+                                    draft && { ...draft, receiverMemberId: event.target.value },
+                                )
+                              }
+                            >
+                              {members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.displayName}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </>
+                      )}
+                      <button type="submit">Save changes</button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTransactionId(null)
+                          setEditDraft(null)
+                          setOriginalDraft(null)
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <p className="transaction-description">
+                      {displayDescription(transaction.description)}
+                    </p>
+                  )}
+                  <span className={`transaction-type ${transaction.type}`}>
+                    {transaction.type === 'expense' ? 'Bill' : 'Transfer'}
+                  </span>
+                  <p className="transaction-meta">{counterparty}</p>
+                  <time dateTime={transaction.occurredAt}>
+                    {transaction.occurredAt.slice(0, 16).replace('T', ' ')}
+                  </time>
+                </div>
+                <div className="transaction-actions">
+                  <strong>{money(transaction.amount, transaction.currency)}</strong>
+                  {editingTransactionId !== transaction.id && (
+                    <button
+                      type="button"
+                      aria-label="Edit bill"
+                      title="Edit bill"
+                      onClick={() => void openEditor(transaction)}
+                    >
+                      Edit
                     </button>
-                  </form>
-                ) : (
-                  <p className="transaction-description">
-                    {displayDescription(transaction.description)}
-                  </p>
-                )}
-                <span className={`transaction-type ${transaction.type}`}>
-                  {transaction.type === 'expense' ? 'Bill' : 'Transfer'}
-                </span>
-                <p className="transaction-meta">{counterparty}</p>
-                <time dateTime={transaction.occurredAt}>
-                  {transaction.occurredAt.slice(0, 16).replace('T', ' ')}
-                </time>
-              </div>
-              <div className="transaction-actions">
-                <strong>{money(transaction.amount, transaction.currency)}</strong>
-                {editingTransactionId !== transaction.id && (
+                  )}
                   <button
                     type="button"
-                    aria-label="Edit bill"
-                    title="Edit bill"
-                    onClick={() => void openEditor(transaction)}
+                    aria-label="Delete bill"
+                    title="Delete bill"
+                    onClick={() => removeTransaction(transaction.id)}
                   >
-                    Edit
+                    x
                   </button>
-                )}
-                <button
-                  type="button"
-                  aria-label="Delete bill"
-                  title="Delete bill"
-                  onClick={() => removeTransaction(transaction.id)}
-                >
-                  x
-                </button>
-              </div>
-            </li>
+                </div>
+              </li>
+            </Fragment>
           )
         })}
       </ol>

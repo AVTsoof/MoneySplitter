@@ -130,13 +130,19 @@
 }
 
 .transaction-group {
-  margin: 28px 0 14px;
+  margin: 0;
   color: var(--foreground);
   font-size: 20px;
   font-weight: 700;
 }
 
-.transaction-row:first-child .transaction-group {
+.transaction-group-row {
+  margin-top: 32px;
+  padding: 0 0 14px;
+  list-style: none;
+}
+
+.transaction-group-row:first-child {
   margin-top: 0;
 }
 
