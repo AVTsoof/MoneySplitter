@@ -1,0 +1,61 @@
+.confirmation-modal {
+  width: min(calc(100% - 32px), 420px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--foreground);
+  background: var(--card);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.28);
+}
+
+.confirmation-modal::backdrop {
+  background: rgb(9 9 11 / 0.58);
+  backdrop-filter: blur(3px);
+}
+
+.confirmation-modal-content {
+  padding: 24px;
+}
+
+.confirmation-modal h2,
+.confirmation-modal p {
+  margin: 0;
+}
+
+.confirmation-modal h2 {
+  font-size: 20px;
+}
+
+.confirmation-modal p {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+}
+
+.confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirmation-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.confirmation-cancel {
+  border: 1px solid var(--input);
+  color: var(--foreground);
+  background: var(--card);
+}
+
+.confirmation-destructive {
+  border: 1px solid var(--destructive);
+  color: #fff;
+  background: var(--destructive);
+}
