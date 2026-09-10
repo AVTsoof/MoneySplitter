@@ -8,6 +8,7 @@ import type {
   TransactionRow,
   TransactionShare,
 } from './schema'
+import { MEMBER_COLORS } from './memberColors'
 
 export class MoneySplitterDb extends Dexie {
   groups!: EntityTable<Group, 'id'>
@@ -31,6 +32,27 @@ export class MoneySplitterDb extends Dexie {
       outbox: '++id, createdAt',
       syncMeta: 'table',
     })
+    this.version(2)
+      .stores({
+        groups: 'id, updatedAt, deletedAt',
+        groupMembers: 'id, groupId, userId, &[groupId+displayName]',
+        transactions: 'id, groupId, [groupId+occurredAt], [groupId+updatedAt], deletedAt',
+        transactionShares: '[transactionId+memberId], transactionId, memberId',
+        exchangeRates: 'base',
+        outbox: '++id, createdAt',
+        syncMeta: 'table',
+      })
+      .upgrade(async (transaction) => {
+        const members = (await transaction.table('groupMembers').toArray()) as GroupMember[]
+        const usedByGroup = new Map<string, Set<string>>()
+        for (const member of members) {
+          const used = usedByGroup.get(member.groupId) ?? new Set<string>()
+          member.color ??= MEMBER_COLORS.find((color) => !used.has(color)) ?? MEMBER_COLORS[0]
+          used.add(member.color)
+          usedByGroup.set(member.groupId, used)
+        }
+        await transaction.table('groupMembers').bulkPut(members)
+      })
   }
 }
 

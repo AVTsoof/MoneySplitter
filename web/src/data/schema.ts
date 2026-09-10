@@ -27,6 +27,7 @@ export type GroupMember = {
   id: Uuid
   groupId: Uuid
   displayName: string
+  color: string
   /** Null until a signed-in user claims this member via an invite. */
   userId: Uuid | null
   createdAt: Timestamp

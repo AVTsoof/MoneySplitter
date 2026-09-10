@@ -47,6 +47,16 @@ describe('groups', () => {
     expect(Object.keys(ids).sort()).toEqual(['Alice', 'Bob'])
   })
 
+  it('assigns unique member colors and rejects a color already in use', async () => {
+    await seedGroup()
+    const members = await repo.getMembers(groupId)
+
+    expect(new Set(members.map((member) => member.color)).size).toBe(2)
+    await expect(repo.setMemberColor(members[1].id, members[0].color)).rejects.toThrow(
+      'That color is already in use.',
+    )
+  })
+
   it('lists only groups that are not deleted', async () => {
     await seedGroup()
     expect((await repo.listGroups()).map((g) => g.id)).toEqual([groupId])

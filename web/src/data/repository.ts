@@ -2,6 +2,7 @@ import { calculateShares } from '../core/splitStrategies'
 import type { SplitStrategy } from '../core/types'
 import { db } from './db'
 import exampleGroup from './seed/exampleGroup.json'
+import { firstUnusedMemberColor, MEMBER_COLORS } from './memberColors'
 import type { Group, GroupMember, TransactionRow, TransactionShare, Uuid } from './schema'
 
 const now = () => new Date().toISOString()
@@ -76,6 +77,7 @@ export async function seedExampleGroup(): Promise<Uuid> {
           id: memberIdFor(index + 1),
           groupId: exampleGroupId,
           displayName,
+          color: MEMBER_COLORS[index],
           userId: null,
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -144,6 +146,7 @@ export async function createGroup({
         id: newId(),
         groupId: id,
         displayName,
+        color: MEMBER_COLORS[members.indexOf(displayName)],
         userId: null,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -172,10 +175,12 @@ export const getMembers = (groupId: Uuid) =>
 export async function addMember(groupId: Uuid, displayName: string): Promise<Uuid> {
   const id = newId()
   const timestamp = now()
+  const members = await getMembers(groupId)
   await db.groupMembers.add({
     id,
     groupId,
     displayName,
+    color: firstUnusedMemberColor(members.map((member) => member.color)),
     userId: null,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -186,6 +191,21 @@ export async function addMember(groupId: Uuid, displayName: string): Promise<Uui
 /** Transactions reference members by id, so a rename is a single row update. */
 export async function renameMember(memberId: Uuid, displayName: string): Promise<void> {
   await db.groupMembers.update(memberId, { displayName, updatedAt: now() })
+}
+
+export async function setMemberColor(memberId: Uuid, color: string): Promise<void> {
+  const member = await db.groupMembers.get(memberId)
+  if (!member) throw new Error('Member not found.')
+  if (!MEMBER_COLORS.includes(color as (typeof MEMBER_COLORS)[number])) {
+    throw new Error('That color is not available.')
+  }
+  const duplicate = await db.groupMembers
+    .where('groupId')
+    .equals(member.groupId)
+    .filter((candidate) => candidate.id !== memberId && candidate.color === color)
+    .first()
+  if (duplicate) throw new Error('That color is already in use.')
+  await db.groupMembers.update(memberId, { color, updatedAt: now() })
 }
 
 export async function removeMember(memberId: Uuid): Promise<void> {

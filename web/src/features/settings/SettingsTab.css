@@ -27,6 +27,32 @@
   font-weight: 700;
 }
 
+.member-color {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--input);
+}
+
+.member-color-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.member-color-choice select {
+  min-height: 32px;
+  max-width: 96px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--card);
+  font: inherit;
+}
+
 .member-list label,
 .add-member label {
   display: flex;

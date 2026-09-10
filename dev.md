@@ -56,6 +56,7 @@ Per-module responsibilities and the design patterns each must apply are specifie
   subset-sum solver will need a Web Worker later.
 - **Money:** never a `number`. Use the configured `Decimal` from `web/src/core/money.ts`,
   which mirrors Python's decimal context. Amounts cross boundaries as strings.
+- **Member Colors:** every group member stores a palette color. New members receive the first unused color; the picker cannot select a color held by another member in the same group. Colors appear as bordered swatches beside names so the name remains readable on both themes; green and red remain reserved for balance states. The 12-color palette excludes green and red and never uses member color as small text, preserving the WCAG 2.1 4.5:1 text-contrast target.
 - **Soft Deletes:** set `deletedAt`; never remove a row, or sync cannot propagate it.
 - **Immutable State:** Logic in the core engine should avoid mutations.
 - **UI Language:** Adhere to the "Simple Sharing" dictionary (e.g., use "The Bottom Line"

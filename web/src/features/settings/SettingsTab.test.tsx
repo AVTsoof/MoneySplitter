@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetDatabase } from '../../data/db'
-import { createGroup, addExpense, getGroup, getMembers, updateGroup } from '../../data/repository'
+import {
+  createGroup,
+  addExpense,
+  getGroup,
+  getMembers,
+  setMemberColor,
+  updateGroup,
+} from '../../data/repository'
 import { SettingsTab } from './SettingsTab'
 
 beforeEach(async () => {
@@ -100,6 +107,21 @@ describe('SettingsTab', () => {
     await user.click(screen.getByRole('button', { name: 'Save default currency' }))
 
     expect((await getGroup(groupId))!.defaultCurrency).toBe('USD')
+  })
+
+  it('lets a member choose an unused color', async () => {
+    const user = userEvent.setup()
+    const groupId = await group()
+    const members = await getMembers(groupId)
+    await setMemberColor(members[1].id, '#7c3aed')
+    render(<SettingsTab groupId={groupId} />)
+
+    await user.selectOptions(await screen.findByLabelText('Color for Alice'), '#c026d3')
+    await user.click(screen.getByRole('button', { name: 'Save color for Alice' }))
+
+    expect(
+      (await getMembers(groupId)).find((member) => member.displayName === 'Alice')?.color,
+    ).toBe('#c026d3')
   })
 
   it('defaults to Device and can select Dark', async () => {

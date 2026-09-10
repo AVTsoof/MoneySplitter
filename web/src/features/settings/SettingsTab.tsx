@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { getSupportedCurrencyCodes } from '../../core/currency'
+import { MEMBER_COLORS } from '../../data/memberColors'
 import {
   addMember,
   deleteGroup,
@@ -9,6 +10,7 @@ import {
   memberHasTransactions,
   removeMember,
   renameMember,
+  setMemberColor,
   updateGroup,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
@@ -26,6 +28,7 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
   const [error, setError] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [defaultCurrency, setDefaultCurrency] = useState('')
+  const [colorDrafts, setColorDrafts] = useState<Record<Uuid, string>>({})
   const [theme, setThemePreference] = useState<Theme>(getTheme)
   const members = useLiveQuery(() => getMembers(groupId), [groupId])
   const group = useLiveQuery(() => getGroup(groupId), [groupId])
@@ -72,6 +75,22 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
     setThemePreference(nextTheme)
   }
 
+  const availableMemberColors = (memberId: Uuid, currentColor: string) =>
+    MEMBER_COLORS.filter(
+      (color) =>
+        color === currentColor ||
+        !members.some((member) => member.id !== memberId && member.color === color),
+    )
+
+  async function saveMemberColor(memberId: Uuid, color: string) {
+    await setMemberColor(memberId, color)
+    setColorDrafts((drafts) => {
+      const remaining = { ...drafts }
+      delete remaining[memberId]
+      return remaining
+    })
+  }
+
   return (
     <div className="settings-tab">
       <h3>Members</h3>
@@ -98,7 +117,32 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
               </>
             ) : (
               <>
+                <span className="member-color" style={{ backgroundColor: member.color }} />
                 <span className="member-name">{member.displayName}</span>
+                <label className="member-color-choice">
+                  Color for {member.displayName}
+                  <select
+                    value={colorDrafts[member.id] ?? member.color}
+                    onChange={(event) =>
+                      setColorDrafts((drafts) => ({ ...drafts, [member.id]: event.target.value }))
+                    }
+                  >
+                    {availableMemberColors(member.id, member.color).map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  aria-label={`Save color for ${member.displayName}`}
+                  onClick={() =>
+                    void saveMemberColor(member.id, colorDrafts[member.id] ?? member.color)
+                  }
+                >
+                  Save color
+                </button>
                 <button
                   type="button"
                   onClick={() => {

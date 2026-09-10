@@ -54,7 +54,7 @@ describe('database schema', () => {
   })
 
   it('enforces unique member display names within a group', async () => {
-    const member = { groupId: 'g1', displayName: 'Alice', userId: null }
+    const member = { groupId: 'g1', displayName: 'Alice', color: '#2563eb', userId: null }
     await db.groupMembers.add({ ...member, id: 'm1', createdAt: 'x', updatedAt: 'x' })
     await expect(
       db.groupMembers.add({ ...member, id: 'm2', createdAt: 'x', updatedAt: 'x' }),

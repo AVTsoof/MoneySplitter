@@ -50,6 +50,7 @@ Stage A is complete. Remaining work:
   participant and currency selection, balances, Smart Settle, member and group settings.
 - app: interactive debt map, Frankfurter exchange-rate cache, and browser PDF export
   with RTL/Hebrew text ordering.
+- app: automatic unique member colors with an unused-color picker and theme-safe swatches.
 - pwa: installable service-worker shell with Playwright coverage for the manifest and
   offline reload after first use.
 
