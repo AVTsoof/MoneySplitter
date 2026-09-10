@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { resetDatabase } from '../../data/db'
 import {
@@ -13,6 +13,10 @@ import { TransactionsTab } from './TransactionsTab'
 
 beforeEach(async () => {
   await resetDatabase()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
 })
 
 describe('TransactionsTab', () => {
@@ -113,6 +117,10 @@ describe('TransactionsTab', () => {
   })
 
   it('removes a transaction from the live history', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     const groupId = await seedExampleGroup()
     render(<TransactionsTab groupId={groupId} />)
 
@@ -126,6 +134,23 @@ describe('TransactionsTab', () => {
     expect(
       screen.queryByText('Leonardo Express train - Fiumicino to Roma Termini'),
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps a transaction when deletion is cancelled', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => false),
+    )
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    const description = await screen.findByText(
+      'Leonardo Express train - Fiumicino to Roma Termini',
+    )
+    fireEvent.click(within(description.closest('li')!).getByRole('button', { name: 'Delete bill' }))
+
+    expect(confirm).toHaveBeenCalledWith('Delete this entry? This cannot be undone.')
+    expect(screen.getByText('34 entries')).toBeInTheDocument()
   })
 
   it('edits a transaction description', async () => {

@@ -105,6 +105,11 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     setEditingTransactionId(null)
   }
 
+  function removeTransaction(transactionId: Uuid) {
+    if (!window.confirm('Delete this entry? This cannot be undone.')) return
+    void deleteTransaction(transactionId)
+  }
+
   return (
     <div className="transactions-tab">
       <button
@@ -345,7 +350,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                   type="button"
                   aria-label="Delete bill"
                   title="Delete bill"
-                  onClick={() => deleteTransaction(transaction.id)}
+                  onClick={() => removeTransaction(transaction.id)}
                 >
                   x
                 </button>
