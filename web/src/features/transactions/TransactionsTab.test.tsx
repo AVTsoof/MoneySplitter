@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { resetDatabase } from '../../data/db'
 import {
   addExpense,
@@ -16,6 +16,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
+  cleanup()
   vi.unstubAllGlobals()
 })
 
@@ -154,6 +155,10 @@ describe('TransactionsTab', () => {
   })
 
   it('edits a transaction description', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     const groupId = await seedExampleGroup()
     render(<TransactionsTab groupId={groupId} />)
 
@@ -162,12 +167,36 @@ describe('TransactionsTab', () => {
     )
     const row = description.closest('li')!
     fireEvent.click(within(row).getByRole('button', { name: 'Edit bill' }))
-    fireEvent.change(within(row).getByLabelText('Description'), {
+    fireEvent.change(await within(row).findByLabelText('Description'), {
       target: { value: 'Airport train' },
     })
     fireEvent.click(within(row).getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('Airport train')).toBeInTheDocument()
+  })
+
+  it('opens original expense fields, marks changes, and confirms before saving', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => false),
+    )
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    const row = (
+      await screen.findByText('Leonardo Express train - Fiumicino to Roma Termini')
+    ).closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit bill' }))
+    expect(await within(row).findByLabelText('Amount')).toHaveValue(70)
+    expect(within(row).getByLabelText('Currency')).toHaveValue('EUR')
+    fireEvent.change(within(row).getByLabelText('Description'), {
+      target: { value: 'Airport train' },
+    })
+    expect(within(row).getByLabelText('Description')).toHaveAttribute('data-changed', 'true')
+    fireEvent.click(within(row).getByRole('button', { name: 'Save changes' }))
+
+    expect(confirm).toHaveBeenCalledWith('Save these entry changes?')
+    expect(within(row).getByLabelText('Description')).toHaveValue('Airport train')
   })
 
   it("shows each member's running bottom line", async () => {

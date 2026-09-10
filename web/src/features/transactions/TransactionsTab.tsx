@@ -7,6 +7,8 @@ import {
   addTransfer,
   deleteTransaction,
   getGroup,
+  getShares,
+  updateExpense,
   updateTransaction,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
@@ -19,6 +21,15 @@ type TransactionsTabProps = {
 
 const money = (amount: string, currency: string) => `${Number(amount).toFixed(2)} ${currency}`
 const displayDescription = (description: string) => description.replaceAll('\u2013', '-')
+
+type EditDraft = {
+  description: string
+  amount: string
+  currency: string
+  payerMemberId: Uuid
+  participantMemberIds: Uuid[]
+  occurredAt: string
+}
 
 export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -33,7 +44,8 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [transferAmount, setTransferAmount] = useState('')
   const [transferCurrency, setTransferCurrency] = useState('EUR')
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
-  const [editedDescription, setEditedDescription] = useState('')
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
+  const [originalDraft, setOriginalDraft] = useState<EditDraft | null>(null)
   const ledger = useLiveQuery(async () => {
     const [group, groupLedger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
     const memberNames = new Map(
@@ -98,11 +110,59 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     setIsTransferFormOpen(false)
   }
 
-  async function saveDescription(transactionId: Uuid) {
-    const description = editedDescription.trim()
-    if (!description) return
-    await updateTransaction(transactionId, { description })
+  async function openEditor(transaction: (typeof transactions)[number]) {
+    if (transaction.type === 'transfer') {
+      const draft = {
+        description: transaction.description,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        payerMemberId: '',
+        participantMemberIds: [],
+        occurredAt: transaction.occurredAt,
+      }
+      setOriginalDraft(draft)
+      setEditDraft(draft)
+      setEditingTransactionId(transaction.id)
+      return
+    }
+    const shares = await getShares(transaction.id)
+    const draft = {
+      description: transaction.description,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      payerMemberId: transaction.payerMemberId!,
+      participantMemberIds: shares.map((share) => share.memberId),
+      occurredAt: transaction.occurredAt,
+    }
+    setOriginalDraft(draft)
+    setEditDraft(draft)
+    setEditingTransactionId(transaction.id)
+  }
+
+  async function saveTransaction(transaction: (typeof transactions)[number]) {
+    if (!editDraft || !window.confirm('Save these entry changes?')) return
+    if (transaction.type === 'expense') {
+      await updateExpense(transaction.id, {
+        groupId,
+        payerMemberId: editDraft.payerMemberId,
+        participantMemberIds: editDraft.participantMemberIds,
+        amount: editDraft.amount,
+        currency: editDraft.currency,
+        description: editDraft.description.trim(),
+        occurredAt: editDraft.occurredAt,
+        strategy: { type: 'equal' },
+      })
+    } else {
+      await updateTransaction(transaction.id, {
+        amount: editDraft.amount,
+        currency: editDraft.currency,
+        description: editDraft.description.trim(),
+        occurredAt: editDraft.occurredAt,
+      })
+    }
     setEditingTransactionId(null)
+    setEditDraft(null)
+    setOriginalDraft(null)
   }
 
   function removeTransaction(transactionId: Uuid) {
@@ -309,13 +369,119 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
             <li key={transaction.id} className="transaction-row">
               <div>
                 {editingTransactionId === transaction.id ? (
-                  <label className="edit-description">
-                    Description
-                    <input
-                      value={editedDescription}
-                      onChange={(event) => setEditedDescription(event.target.value)}
-                    />
-                  </label>
+                  <div className="entry-editor">
+                    <label>
+                      Description
+                      <input
+                        data-changed={editDraft?.description !== originalDraft?.description}
+                        value={editDraft?.description ?? ''}
+                        onChange={(event) =>
+                          setEditDraft(
+                            (draft) => draft && { ...draft, description: event.target.value },
+                          )
+                        }
+                      />
+                    </label>
+                    <label>
+                      Amount
+                      <input
+                        data-changed={editDraft?.amount !== originalDraft?.amount}
+                        min="0.01"
+                        step="0.01"
+                        type="number"
+                        value={editDraft?.amount ?? ''}
+                        onChange={(event) =>
+                          setEditDraft((draft) => draft && { ...draft, amount: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Currency
+                      <select
+                        data-changed={editDraft?.currency !== originalDraft?.currency}
+                        value={editDraft?.currency ?? ''}
+                        onChange={(event) =>
+                          setEditDraft(
+                            (draft) => draft && { ...draft, currency: event.target.value },
+                          )
+                        }
+                      >
+                        {activeCurrencies.map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Timestamp
+                      <input
+                        data-changed={editDraft?.occurredAt !== originalDraft?.occurredAt}
+                        type="datetime-local"
+                        value={editDraft?.occurredAt.slice(0, 16) ?? ''}
+                        onChange={(event) =>
+                          setEditDraft(
+                            (draft) =>
+                              draft && {
+                                ...draft,
+                                occurredAt: new Date(event.target.value).toISOString(),
+                              },
+                          )
+                        }
+                      />
+                    </label>
+                    {transaction.type === 'expense' && (
+                      <>
+                        <label>
+                          Paid by
+                          <select
+                            data-changed={editDraft?.payerMemberId !== originalDraft?.payerMemberId}
+                            value={editDraft?.payerMemberId ?? ''}
+                            onChange={(event) =>
+                              setEditDraft(
+                                (draft) => draft && { ...draft, payerMemberId: event.target.value },
+                              )
+                            }
+                          >
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.displayName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <fieldset className="participants">
+                          <legend>Who was there?</legend>
+                          {members.map((member) => (
+                            <label key={member.id}>
+                              <input
+                                type="checkbox"
+                                checked={
+                                  editDraft?.participantMemberIds.includes(member.id) ?? false
+                                }
+                                onChange={() =>
+                                  setEditDraft(
+                                    (draft) =>
+                                      draft && {
+                                        ...draft,
+                                        participantMemberIds: draft.participantMemberIds.includes(
+                                          member.id,
+                                        )
+                                          ? draft.participantMemberIds.filter(
+                                              (id) => id !== member.id,
+                                            )
+                                          : [...draft.participantMemberIds, member.id],
+                                      },
+                                  )
+                                }
+                              />
+                              {member.displayName}
+                            </label>
+                          ))}
+                        </fieldset>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <p className="transaction-description">
                     {displayDescription(transaction.description)}
@@ -329,7 +495,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                   <button
                     type="button"
                     aria-label="Save changes"
-                    onClick={() => saveDescription(transaction.id)}
+                    onClick={() => saveTransaction(transaction)}
                   >
                     Save
                   </button>
@@ -338,10 +504,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     type="button"
                     aria-label="Edit bill"
                     title="Edit bill"
-                    onClick={() => {
-                      setEditingTransactionId(transaction.id)
-                      setEditedDescription(transaction.description)
-                    }}
+                    onClick={() => void openEditor(transaction)}
                   >
                     Edit
                   </button>
