@@ -221,4 +221,38 @@ describe('TransactionsTab', () => {
     expect(screen.getByText('Alice: +15.00 EUR')).toBeInTheDocument()
     expect(screen.getByText('Bob: -15.00 EUR')).toBeInTheDocument()
   })
+
+  it('shows timestamped entries newest first and groups them by day', async () => {
+    const groupId = await createGroup({ name: 'Test', defaultCurrency: 'EUR', members: ['Alice'] })
+    const [alice] = await getMembers(groupId)
+    await addExpense({
+      groupId,
+      payerMemberId: alice.id,
+      participantMemberIds: [alice.id],
+      amount: '1.00',
+      currency: 'EUR',
+      description: 'Older',
+      occurredAt: '2026-01-01T10:00:00.000Z',
+      strategy: { type: 'equal' },
+    })
+    await addExpense({
+      groupId,
+      payerMemberId: alice.id,
+      participantMemberIds: [alice.id],
+      amount: '2.00',
+      currency: 'EUR',
+      description: 'Newer',
+      occurredAt: '2026-01-02T10:00:00.000Z',
+      strategy: { type: 'equal' },
+    })
+    render(<TransactionsTab groupId={groupId} />)
+
+    expect(await screen.findByText('2026-01-02')).toBeInTheDocument()
+    expect(screen.getByText(/2026-01-02 10:00/)).toBeInTheDocument()
+    const entries = screen
+      .getAllByRole('listitem')
+      .filter((item) => item.textContent?.includes('Older') || item.textContent?.includes('Newer'))
+    expect(entries[0]).toHaveTextContent('Newer')
+    expect(screen.getByLabelText('Group entries by')).toHaveValue('day')
+  })
 })

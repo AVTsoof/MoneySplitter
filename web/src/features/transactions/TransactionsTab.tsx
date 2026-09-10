@@ -46,6 +46,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
   const [originalDraft, setOriginalDraft] = useState<EditDraft | null>(null)
+  const [groupBy, setGroupBy] = useState<'day' | 'user'>('day')
   const ledger = useLiveQuery(async () => {
     const [group, groupLedger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
     const memberNames = new Map(
@@ -67,6 +68,15 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const { group, memberNames, members, netBalances, transactions } = ledger
   const defaultPayerId = payerMemberId || members[0]?.id || ''
   const activeCurrencies = group?.activeCurrencies ?? ['EUR']
+  const orderedTransactions = [...transactions].sort((left, right) =>
+    right.occurredAt.localeCompare(left.occurredAt),
+  )
+  const groupLabel = (transaction: (typeof transactions)[number]) =>
+    groupBy === 'day'
+      ? transaction.occurredAt.slice(0, 10)
+      : memberNames.get(
+          transaction.type === 'expense' ? transaction.payerMemberId! : transaction.senderMemberId!,
+        )!
 
   async function saveExpense(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -358,8 +368,20 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
         ))}
       </section>
       <p className="transaction-count">{transactions.length} entries</p>
+      <label className="entry-grouping">
+        Group entries by
+        <select
+          value={groupBy}
+          onChange={(event) => setGroupBy(event.target.value as 'day' | 'user')}
+        >
+          <option value="day">Day</option>
+          <option value="user">User</option>
+        </select>
+      </label>
       <ol className="transaction-list">
-        {transactions.map((transaction) => {
+        {orderedTransactions.map((transaction, index) => {
+          const previous = orderedTransactions[index - 1]
+          const showGroup = !previous || groupLabel(previous) !== groupLabel(transaction)
           const counterparty =
             transaction.type === 'expense'
               ? `Paid by ${memberNames.get(transaction.payerMemberId!)}`
@@ -368,6 +390,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
           return (
             <li key={transaction.id} className="transaction-row">
               <div>
+                {showGroup && <p className="transaction-group">{groupLabel(transaction)}</p>}
                 {editingTransactionId === transaction.id ? (
                   <div className="entry-editor">
                     <label>
@@ -488,6 +511,9 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                   </p>
                 )}
                 <p className="transaction-meta">{counterparty}</p>
+                <time dateTime={transaction.occurredAt}>
+                  {transaction.occurredAt.slice(0, 16).replace('T', ' ')}
+                </time>
               </div>
               <div className="transaction-actions">
                 <strong>{money(transaction.amount, transaction.currency)}</strong>

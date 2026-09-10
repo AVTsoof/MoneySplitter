@@ -120,6 +120,26 @@
   margin: 0;
 }
 
+.transaction-row time,
+.transaction-group,
+.entry-grouping {
+  color: #52635d;
+  font-size: 13px;
+}
+
+.transaction-group {
+  margin: 0 0 8px;
+  color: #153c34;
+  font-weight: 700;
+}
+
+.entry-grouping {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
 .transaction-description {
   color: #153c34;
   font-weight: 700;
