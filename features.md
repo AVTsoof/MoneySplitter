@@ -51,7 +51,7 @@ Stage A is complete. Remaining work:
 - app: interactive debt map, Frankfurter exchange-rate cache, and browser PDF export
   with RTL/Hebrew text ordering.
 - app: automatic unique member colors with an unused-color picker and theme-safe swatches.
-- app: default-currency balance reporting from cached exchange rates, while ledger rows retain original amounts.
+- app: default-currency balance, Smart Settle, and map reporting from cached exchange rates, while ledger rows retain original amounts.
 - pwa: installable service-worker shell with Playwright coverage for the manifest and
   offline reload after first use.
 

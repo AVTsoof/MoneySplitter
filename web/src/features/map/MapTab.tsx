@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Background, Controls, ReactFlow } from '@xyflow/react'
 import { getNetBalances } from '../../core/ledger'
-import { simplifyDebts } from '../../core/debtSimplifier'
+import { getCachedExchangeRates } from '../../data/exchangeRates'
 import { loadGroupLedger } from '../../data/groupLedger'
+import { getGroup } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
-import { buildDebtMap } from './debtMap'
+import { buildDefaultCurrencyDebtMap } from './debtMap'
 import './MapTab.css'
 
 type MapTabProps = {
@@ -13,8 +14,15 @@ type MapTabProps = {
 
 export function MapTab({ groupId }: MapTabProps) {
   const map = useLiveQuery(async () => {
-    const { members, transactions } = await loadGroupLedger(groupId)
-    return buildDebtMap(members, simplifyDebts(getNetBalances(transactions)))
+    const [group, ledger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
+    if (!group) return null
+    const rates = await getCachedExchangeRates(group.defaultCurrency)
+    return buildDefaultCurrencyDebtMap(
+      ledger.members,
+      getNetBalances(ledger.transactions),
+      group.defaultCurrency,
+      rates,
+    )
   }, [groupId])
 
   if (!map) return <p>Loading map...</p>

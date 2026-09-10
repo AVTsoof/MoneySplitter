@@ -1,5 +1,8 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { Settlement } from '../../core/debtSimplifier'
+import { simplifyDebts } from '../../core/debtSimplifier'
+import { getBalancesInCurrency } from '../../core/ledger'
+import type { MultiBalances } from '../../core/types'
 import type { GroupMember } from '../../data/schema'
 
 export function buildDebtMap(
@@ -27,4 +30,18 @@ export function buildDebtMap(
   )
 
   return { nodes, edges }
+}
+
+export function buildDefaultCurrencyDebtMap(
+  members: GroupMember[],
+  balances: MultiBalances,
+  defaultCurrency: string,
+  rates: Record<string, string>,
+): { nodes: Node[]; edges: Edge[] } {
+  return buildDebtMap(
+    members,
+    simplifyDebts({
+      [defaultCurrency]: getBalancesInCurrency(balances, defaultCurrency, rates),
+    }),
+  )
 }
