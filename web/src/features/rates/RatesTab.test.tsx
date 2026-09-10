@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetDatabase } from '../../data/db'
-import { createGroup } from '../../data/repository'
+import { createGroup, updateGroup } from '../../data/repository'
 import { RatesTab } from './RatesTab'
 
 beforeEach(async () => {
@@ -16,7 +16,7 @@ afterEach(() => {
 })
 
 describe('RatesTab', () => {
-  it('loads and displays rates for the group default currency', async () => {
+  it('displays a conversion matrix for only the group active currencies', async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify({ rates: { USD: 1.08 } }), { status: 200 }),
     )
@@ -26,10 +26,16 @@ describe('RatesTab', () => {
       defaultCurrency: 'EUR',
       members: ['Alice'],
     })
+    await updateGroup(groupId, { activeCurrencies: ['EUR', 'USD'] })
     render(<RatesTab groupId={groupId} />)
 
     await user.click(await screen.findByRole('button', { name: 'Refresh rates' }))
 
-    expect(await screen.findByText('1 EUR = 1.08 USD')).toBeInTheDocument()
+    const matrix = await screen.findByRole('table', { name: 'Currency conversion matrix' })
+    expect(matrix).toHaveTextContent('EUR')
+    expect(matrix).toHaveTextContent('USD')
+    expect(matrix).toHaveTextContent('1.000000')
+    expect(matrix).toHaveTextContent('1.080000')
+    expect(matrix).toHaveTextContent('0.925926')
   })
 })

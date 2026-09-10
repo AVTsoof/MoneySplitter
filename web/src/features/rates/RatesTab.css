@@ -12,6 +12,40 @@
   cursor: pointer;
 }
 
+.rates-matrix-wrap {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.rates-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rates-matrix th,
+.rates-matrix td {
+  padding: 12px;
+  border: 1px solid var(--border);
+  text-align: right;
+}
+
+.rates-matrix th {
+  color: var(--foreground);
+  background: var(--muted);
+  font-weight: 700;
+}
+
+.rates-matrix th:first-child {
+  text-align: left;
+}
+
+.rates-base {
+  margin: 12px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
 .rates-list {
   margin: 16px 0 0;
   padding: 0;
