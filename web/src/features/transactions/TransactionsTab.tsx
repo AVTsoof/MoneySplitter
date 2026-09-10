@@ -4,11 +4,13 @@ import {
   addExpense,
   addTransfer,
   deleteTransaction,
+  getGroup,
   getMembers,
   getTransactions,
   updateTransaction,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
+import { downloadPdfReport } from '../reports/pdfReport'
 import './TransactionsTab.css'
 
 type TransactionsTabProps = {
@@ -30,19 +32,20 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
   const [editedDescription, setEditedDescription] = useState('')
   const ledger = useLiveQuery(async () => {
-    const [members, transactions] = await Promise.all([
+    const [group, members, transactions] = await Promise.all([
+      getGroup(groupId),
       getMembers(groupId),
       getTransactions(groupId),
     ])
     const memberNames = new Map(members.map((member) => [member.id, member.displayName]))
-    return { memberNames, members, transactions }
+    return { group, memberNames, members, transactions }
   }, [groupId])
 
   if (!ledger) {
     return <p>Loading transactions...</p>
   }
 
-  const { memberNames, members, transactions } = ledger
+  const { group, memberNames, members, transactions } = ledger
   const defaultPayerId = payerMemberId || members[0]?.id || ''
 
   async function saveExpense(event: React.FormEvent<HTMLFormElement>) {
@@ -98,6 +101,25 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
       </button>
       <button className="add-bill" type="button" onClick={() => setIsTransferFormOpen(true)}>
         Add transfer
+      </button>
+      <button
+        className="add-bill"
+        type="button"
+        onClick={() =>
+          downloadPdfReport(
+            group?.name ?? 'MoneySplitter',
+            transactions.map((transaction) => ({
+              description: displayDescription(transaction.description),
+              counterparty:
+                transaction.type === 'expense'
+                  ? `Paid by ${memberNames.get(transaction.payerMemberId!)}`
+                  : `${memberNames.get(transaction.senderMemberId!)} paid ${memberNames.get(transaction.receiverMemberId!)}`,
+              amount: money(transaction.amount, transaction.currency),
+            })),
+          )
+        }
+      >
+        Export PDF
       </button>
       {isFormOpen && (
         <form className="bill-form" onSubmit={saveExpense}>

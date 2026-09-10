@@ -19,6 +19,7 @@ describe('TransactionsTab', () => {
     expect(within(row).getByText('70.00 EUR')).toBeInTheDocument()
     expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
     expect(screen.getByText('34 entries')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export PDF' })).toBeInTheDocument()
   })
 
   it('adds an equal-split expense for all group members', async () => {
