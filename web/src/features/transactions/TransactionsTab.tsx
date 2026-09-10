@@ -14,6 +14,7 @@ import {
   updateTransaction,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
+import { MemberBadge } from '../common/MemberBadge'
 import { downloadPdfReport } from '../reports/pdfReport'
 import './TransactionsTab.css'
 
@@ -82,6 +83,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   }
 
   const { group, memberNames, members, netBalances, rates, transactions } = ledger
+  const membersById = new Map(members.map((member) => [member.id, member]))
   const defaultPayerId = payerMemberId || members[0]?.id || ''
   const activeCurrencies = group?.activeCurrencies ?? ['EUR']
   const orderedTransactions = [...transactions].sort((left, right) =>
@@ -306,7 +308,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                     )
                   }
                 />
-                {member.displayName}
+                <MemberBadge member={member} />
               </label>
             ))}
           </fieldset>
@@ -384,7 +386,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               const sign = balance?.isNegative() ? '' : '+'
               return (
                 <li key={member.id}>
-                  {member.displayName}: {sign}
+                  <MemberBadge member={member} />: {sign}
                   {amount} {currency}
                 </li>
               )
@@ -397,10 +399,15 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
         {orderedTransactions.map((transaction, index) => {
           const previous = orderedTransactions[index - 1]
           const showGroup = !previous || groupLabel(previous) !== groupLabel(transaction)
-          const counterparty =
-            transaction.type === 'expense'
-              ? `Paid by ${memberNames.get(transaction.payerMemberId!)}`
-              : `${memberNames.get(transaction.senderMemberId!)} paid ${memberNames.get(transaction.receiverMemberId!)}`
+          const payer = transaction.payerMemberId
+            ? membersById.get(transaction.payerMemberId)
+            : undefined
+          const sender = transaction.senderMemberId
+            ? membersById.get(transaction.senderMemberId)
+            : undefined
+          const receiver = transaction.receiverMemberId
+            ? membersById.get(transaction.receiverMemberId)
+            : undefined
 
           return (
             <Fragment key={transaction.id}>
@@ -546,7 +553,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                                     )
                                   }
                                 />
-                                {member.displayName}
+                                <MemberBadge member={member} />
                               </label>
                             ))}
                           </fieldset>
@@ -628,7 +635,16 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                   <span className={`transaction-type ${transaction.type}`}>
                     {transaction.type === 'expense' ? 'Bill' : 'Transfer'}
                   </span>
-                  <p className="transaction-meta">{counterparty}</p>
+                  <p className="transaction-meta">
+                    {transaction.type === 'expense' ? (
+                      <>Paid by {payer && <MemberBadge member={payer} />}</>
+                    ) : (
+                      <>
+                        {sender && <MemberBadge member={sender} />} paid{' '}
+                        {receiver && <MemberBadge member={receiver} />}
+                      </>
+                    )}
+                  </p>
                   <time dateTime={transaction.occurredAt}>
                     {transaction.occurredAt.slice(0, 16).replace('T', ' ')}
                   </time>

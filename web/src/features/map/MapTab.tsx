@@ -14,10 +14,7 @@ type MapTabProps = {
 export function MapTab({ groupId }: MapTabProps) {
   const map = useLiveQuery(async () => {
     const { members, transactions } = await loadGroupLedger(groupId)
-    return buildDebtMap(
-      members.map((member) => member.displayName),
-      simplifyDebts(getNetBalances(transactions)),
-    )
+    return buildDebtMap(members, simplifyDebts(getNetBalances(transactions)))
   }, [groupId])
 
   if (!map) return <p>Loading map...</p>

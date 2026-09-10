@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { getNetBalances } from '../../core/ledger'
 import { loadGroupLedger } from '../../data/groupLedger'
 import type { Uuid } from '../../data/schema'
+import { MemberBadge } from '../common/MemberBadge'
 import './BalancesTab.css'
 
 type BalancesTabProps = {
@@ -36,7 +37,9 @@ export function BalancesTab({ groupId }: BalancesTabProps) {
         <tbody>
           {balances.members.map((member) => (
             <tr key={member.id}>
-              <th scope="row">{member.displayName}</th>
+              <th scope="row">
+                <MemberBadge member={member} />
+              </th>
               {currencies.map((currency) => {
                 const balance = balances.net[currency][member.displayName]
                 return (

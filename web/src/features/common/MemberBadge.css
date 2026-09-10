@@ -1,0 +1,16 @@
+.member-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground);
+  font-weight: inherit;
+}
+
+.member-badge-swatch {
+  width: 0.7em;
+  height: 0.7em;
+  flex: 0 0 auto;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--input);
+}

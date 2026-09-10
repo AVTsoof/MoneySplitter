@@ -15,6 +15,7 @@ import {
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import { getTheme, setTheme, type Theme } from '../../theme'
+import { MemberBadge } from '../common/MemberBadge'
 import './SettingsTab.css'
 
 type SettingsTabProps = {
@@ -117,8 +118,9 @@ export function SettingsTab({ groupId }: SettingsTabProps) {
               </>
             ) : (
               <>
-                <span className="member-color" style={{ backgroundColor: member.color }} />
-                <span className="member-name">{member.displayName}</span>
+                <span className="member-name">
+                  <MemberBadge member={member} />
+                </span>
                 <label className="member-color-choice">
                   Color for {member.displayName}
                   <select

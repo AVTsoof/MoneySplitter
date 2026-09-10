@@ -4,6 +4,7 @@ import { simplifyDebts } from '../../core/debtSimplifier'
 import { loadGroupLedger } from '../../data/groupLedger'
 import { addTransfer } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
+import { MemberBadge } from '../common/MemberBadge'
 import './SettlementsTab.css'
 
 type SettlementsTabProps = {
@@ -14,10 +15,12 @@ export function SettlementsTab({ groupId }: SettlementsTabProps) {
   const plan = useLiveQuery(async () => {
     const { members, transactions } = await loadGroupLedger(groupId)
     const idsByName = new Map(members.map((member) => [member.displayName, member.id]))
+    const membersByName = new Map(members.map((member) => [member.displayName, member]))
     const byCurrency = simplifyDebts(getNetBalances(transactions))
 
     return {
       idsByName,
+      membersByName,
       settlements: Object.entries(byCurrency).flatMap(([currency, list]) =>
         list.map((settlement) => ({ ...settlement, currency })),
       ),
@@ -36,7 +39,8 @@ export function SettlementsTab({ groupId }: SettlementsTabProps) {
         <li key={`${settlement.currency}-${settlement.from}-${settlement.to}`}>
           <div>
             <p className="settlement-parties">
-              {settlement.from} pays {settlement.to}
+              <MemberBadge member={plan.membersByName.get(settlement.from)!} /> pays{' '}
+              <MemberBadge member={plan.membersByName.get(settlement.to)!} />
             </p>
             <p className="settlement-amount">
               {settlement.amount} {settlement.currency}

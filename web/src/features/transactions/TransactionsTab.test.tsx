@@ -30,7 +30,7 @@ describe('TransactionsTab', () => {
     const leonardo = await screen.findByText('Leonardo Express train - Fiumicino to Roma Termini')
     const row = leonardo.closest('li')!
     expect(within(row).getByText('70.00 EUR')).toBeInTheDocument()
-    expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
+    expect(row).toHaveTextContent('Paid by Alice')
     expect(within(row).getByText('Bill')).toBeInTheDocument()
     expect(screen.getByText('34 entries')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Export PDF' })).toBeInTheDocument()
@@ -54,7 +54,7 @@ describe('TransactionsTab', () => {
     expect(await screen.findByText('35 entries')).toBeInTheDocument()
     const row = screen.getByText('Gelato').closest('li')!
     expect(within(row).getByText('25.00 EUR')).toBeInTheDocument()
-    expect(within(row).getByText('Paid by Alice')).toBeInTheDocument()
+    expect(row).toHaveTextContent('Paid by Alice')
   })
 
   it('lets the payer choose bill participants', async () => {
@@ -74,9 +74,15 @@ describe('TransactionsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save bill' }))
 
     expect(await screen.findByText('1 entries')).toBeInTheDocument()
-    expect(await screen.findByText('Alice: +10.00 EUR')).toBeInTheDocument()
-    expect(screen.getByText('Bob: -10.00 EUR')).toBeInTheDocument()
-    expect(screen.getByText('Charlie: +0.00 EUR')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('listitem').some((item) => item.textContent === 'Alice: +10.00 EUR'),
+    ).toBe(true)
+    expect(
+      screen.getAllByRole('listitem').some((item) => item.textContent === 'Bob: -10.00 EUR'),
+    ).toBe(true)
+    expect(
+      screen.getAllByRole('listitem').some((item) => item.textContent === 'Charlie: +0.00 EUR'),
+    ).toBe(true)
     expect(members).toHaveLength(3)
   })
 
@@ -144,7 +150,7 @@ describe('TransactionsTab', () => {
     expect(await screen.findByText('35 entries')).toBeInTheDocument()
     const row = screen.getByText('Transfer from Bob to Alice').closest('li')!
     expect(within(row).getByText('10.00 EUR')).toBeInTheDocument()
-    expect(within(row).getByText('Bob paid Alice')).toBeInTheDocument()
+    expect(row).toHaveTextContent('Bob paid Alice')
     expect(within(row).getByText('Transfer')).toBeInTheDocument()
   })
 
@@ -298,8 +304,12 @@ describe('TransactionsTab', () => {
     render(<TransactionsTab groupId={groupId} />)
 
     expect(await screen.findByText('The Bottom Line')).toBeInTheDocument()
-    expect(screen.getByText('Alice: +15.00 EUR')).toBeInTheDocument()
-    expect(screen.getByText('Bob: -15.00 EUR')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('listitem').some((item) => item.textContent === 'Alice: +15.00 EUR'),
+    ).toBe(true)
+    expect(
+      screen.getAllByRole('listitem').some((item) => item.textContent === 'Bob: -15.00 EUR'),
+    ).toBe(true)
   })
 
   it('shows timestamped entries newest first and groups them by day', async () => {

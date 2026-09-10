@@ -36,7 +36,9 @@ describe('SettlementsTab', () => {
     render(<SettlementsTab groupId={groupId} />)
 
     const row = await screen.findByRole('listitem')
-    expect(within(row).getByText('Bob pays Alice')).toBeInTheDocument()
+    expect(row).toHaveTextContent('Bob pays Alice')
+    expect(within(row).getByLabelText('Bob color')).toBeInTheDocument()
+    expect(within(row).getByLabelText('Alice color')).toBeInTheDocument()
     expect(within(row).getByText('15.00 EUR')).toBeInTheDocument()
   })
 
