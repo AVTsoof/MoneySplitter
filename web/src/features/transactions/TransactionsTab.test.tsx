@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { db } from '../../data/db'
 import { resetDatabase } from '../../data/db'
 import {
   addExpense,
@@ -96,6 +97,33 @@ describe('TransactionsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save bill' }))
 
     expect(await screen.findByText('5.00 USD')).toBeInTheDocument()
+  })
+
+  it('shows a non-default entry with its cached default-currency conversion', async () => {
+    const groupId = await createGroup({
+      name: 'Test',
+      defaultCurrency: 'EUR',
+      members: ['Alice'],
+    })
+    await updateGroup(groupId, { activeCurrencies: ['EUR', 'USD'] })
+    await db.exchangeRates.add({
+      base: 'EUR',
+      rates: { USD: '1.08' },
+      fetchedAt: new Date().toISOString(),
+    })
+    const [alice] = await getMembers(groupId)
+    await addExpense({
+      groupId,
+      payerMemberId: alice.id,
+      participantMemberIds: [alice.id],
+      amount: '10.00',
+      currency: 'USD',
+      description: 'Coffee',
+      strategy: { type: 'equal' },
+    })
+    render(<TransactionsTab groupId={groupId} />)
+
+    expect(await screen.findByText('10.00 USD (9.26 EUR)')).toBeInTheDocument()
   })
 
   it('records a transfer between group members', async () => {

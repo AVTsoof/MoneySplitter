@@ -1,6 +1,8 @@
 import { Fragment, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { getExchangeRate } from '../../core/currency'
 import { getNetBalances } from '../../core/ledger'
+import { getCachedExchangeRates } from '../../data/exchangeRates'
 import { loadGroupLedger } from '../../data/groupLedger'
 import {
   addExpense,
@@ -21,6 +23,17 @@ type TransactionsTabProps = {
 
 const money = (amount: string, currency: string) => `${Number(amount).toFixed(2)} ${currency}`
 const displayDescription = (description: string) => description.replaceAll('\u2013', '-')
+const reportingMoney = (
+  amount: string,
+  currency: string,
+  defaultCurrency: string,
+  rates: Record<string, string>,
+) => {
+  const original = money(amount, currency)
+  if (currency === defaultCurrency || rates[currency] === undefined) return original
+  const converted = getExchangeRate(rates, currency, defaultCurrency).times(amount).toFixed(2)
+  return `${original} (${converted} ${defaultCurrency})`
+}
 
 type EditDraft = {
   description: string
@@ -50,6 +63,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [originalDraft, setOriginalDraft] = useState<EditDraft | null>(null)
   const ledger = useLiveQuery(async () => {
     const [group, groupLedger] = await Promise.all([getGroup(groupId), loadGroupLedger(groupId)])
+    const rates = group ? await getCachedExchangeRates(group.defaultCurrency) : {}
     const memberNames = new Map(
       groupLedger.members.map((member) => [member.id, member.displayName]),
     )
@@ -58,6 +72,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
       memberNames,
       members: groupLedger.members,
       netBalances: getNetBalances(groupLedger.transactions),
+      rates,
       transactions: groupLedger.rows,
     }
   }, [groupId])
@@ -66,7 +81,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     return <p>Loading transactions...</p>
   }
 
-  const { group, memberNames, members, netBalances, transactions } = ledger
+  const { group, memberNames, members, netBalances, rates, transactions } = ledger
   const defaultPayerId = payerMemberId || members[0]?.id || ''
   const activeCurrencies = group?.activeCurrencies ?? ['EUR']
   const orderedTransactions = [...transactions].sort((left, right) =>
@@ -619,7 +634,14 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                   </time>
                 </div>
                 <div className="transaction-actions">
-                  <strong>{money(transaction.amount, transaction.currency)}</strong>
+                  <strong>
+                    {reportingMoney(
+                      transaction.amount,
+                      transaction.currency,
+                      group?.defaultCurrency ?? transaction.currency,
+                      rates,
+                    )}
+                  </strong>
                   {editingTransactionId !== transaction.id && (
                     <button
                       type="button"
