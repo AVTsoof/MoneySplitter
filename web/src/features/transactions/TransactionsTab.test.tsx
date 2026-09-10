@@ -78,4 +78,21 @@ describe('TransactionsTab', () => {
       screen.queryByText('Leonardo Express train - Fiumicino to Roma Termini'),
     ).not.toBeInTheDocument()
   })
+
+  it('edits a transaction description', async () => {
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    const description = await screen.findByText(
+      'Leonardo Express train - Fiumicino to Roma Termini',
+    )
+    const row = description.closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit bill' }))
+    fireEvent.change(within(row).getByLabelText('Description'), {
+      target: { value: 'Airport train' },
+    })
+    fireEvent.click(within(row).getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Airport train')).toBeInTheDocument()
+  })
 })

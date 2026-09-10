@@ -6,6 +6,7 @@ import {
   deleteTransaction,
   getMembers,
   getTransactions,
+  updateTransaction,
 } from '../../data/repository'
 import type { Uuid } from '../../data/schema'
 import './TransactionsTab.css'
@@ -26,6 +27,8 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
   const [senderMemberId, setSenderMemberId] = useState('')
   const [receiverMemberId, setReceiverMemberId] = useState('')
   const [transferAmount, setTransferAmount] = useState('')
+  const [editingTransactionId, setEditingTransactionId] = useState<Uuid | null>(null)
+  const [editedDescription, setEditedDescription] = useState('')
   const ledger = useLiveQuery(async () => {
     const [members, transactions] = await Promise.all([
       getMembers(groupId),
@@ -79,6 +82,13 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
     setReceiverMemberId('')
     setTransferAmount('')
     setIsTransferFormOpen(false)
+  }
+
+  async function saveDescription(transactionId: Uuid) {
+    const description = editedDescription.trim()
+    if (!description) return
+    await updateTransaction(transactionId, { description })
+    setEditingTransactionId(null)
   }
 
   return (
@@ -185,13 +195,44 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
           return (
             <li key={transaction.id} className="transaction-row">
               <div>
-                <p className="transaction-description">
-                  {displayDescription(transaction.description)}
-                </p>
+                {editingTransactionId === transaction.id ? (
+                  <label className="edit-description">
+                    Description
+                    <input
+                      value={editedDescription}
+                      onChange={(event) => setEditedDescription(event.target.value)}
+                    />
+                  </label>
+                ) : (
+                  <p className="transaction-description">
+                    {displayDescription(transaction.description)}
+                  </p>
+                )}
                 <p className="transaction-meta">{counterparty}</p>
               </div>
               <div className="transaction-actions">
                 <strong>{money(transaction.amount, transaction.currency)}</strong>
+                {editingTransactionId === transaction.id ? (
+                  <button
+                    type="button"
+                    aria-label="Save changes"
+                    onClick={() => saveDescription(transaction.id)}
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label="Edit bill"
+                    title="Edit bill"
+                    onClick={() => {
+                      setEditingTransactionId(transaction.id)
+                      setEditedDescription(transaction.description)
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
                 <button
                   type="button"
                   aria-label="Delete bill"
