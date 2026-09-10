@@ -6,6 +6,10 @@ type FrankfurterResponse = {
   rates: Record<string, number>
 }
 
+export async function getCachedExchangeRates(base: string): Promise<Record<string, string>> {
+  return (await db.exchangeRates.get(base))?.rates ?? {}
+}
+
 export async function getExchangeRates(base: string): Promise<Record<string, string>> {
   const cached = await db.exchangeRates.get(base)
   if (cached && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_DURATION_MS) {

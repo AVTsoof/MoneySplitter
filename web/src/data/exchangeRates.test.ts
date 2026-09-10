@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db, resetDatabase } from './db'
-import { getExchangeRates } from './exchangeRates'
+import { getCachedExchangeRates, getExchangeRates } from './exchangeRates'
 
 describe('getExchangeRates', () => {
   beforeEach(async () => {
@@ -31,6 +31,17 @@ describe('getExchangeRates', () => {
     })
 
     await expect(getExchangeRates('EUR')).resolves.toEqual({ USD: '1.08' })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('reads cached rates without fetching', async () => {
+    await db.exchangeRates.add({
+      base: 'EUR',
+      rates: { USD: '1.08' },
+      fetchedAt: '2026-01-01T00:00:00.000Z',
+    })
+
+    await expect(getCachedExchangeRates('EUR')).resolves.toEqual({ USD: '1.08' })
     expect(fetch).not.toHaveBeenCalled()
   })
 })
