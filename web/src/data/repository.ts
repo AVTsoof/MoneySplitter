@@ -264,6 +264,29 @@ export async function addExpense(expense: NewExpense): Promise<Uuid> {
   return id
 }
 
+export async function updateExpense(id: Uuid, expense: NewExpense): Promise<void> {
+  const shares = calculateShares(expense.strategy, expense.amount, expense.participantMemberIds)
+  const shareRows: TransactionShare[] = Object.entries(shares).map(([memberId, amount]) => ({
+    transactionId: id,
+    memberId,
+    amount: amount.toFixed(2),
+  }))
+
+  await db.transaction('rw', db.transactions, db.transactionShares, async () => {
+    await db.transactions.update(id, {
+      amount: expense.amount,
+      currency: expense.currency,
+      description: expense.description,
+      occurredAt: expense.occurredAt ?? now(),
+      payerMemberId: expense.payerMemberId,
+      splitStrategy: expense.strategy,
+      updatedAt: now(),
+    })
+    await db.transactionShares.where('transactionId').equals(id).delete()
+    await db.transactionShares.bulkAdd(shareRows)
+  })
+}
+
 export type NewTransfer = {
   groupId: Uuid
   senderMemberId: Uuid

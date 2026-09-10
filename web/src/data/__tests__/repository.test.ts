@@ -147,6 +147,39 @@ describe('transactions', () => {
     expect(after!.updatedAt > before).toBe(true)
   })
 
+  it('updates an expense and replaces its computed shares atomically', async () => {
+    const ids = await seedGroup()
+    const id = await repo.addExpense({
+      groupId,
+      payerMemberId: ids.Alice,
+      participantMemberIds: [ids.Alice, ids.Bob],
+      amount: '10.00',
+      currency: 'EUR',
+      description: 'Coffee',
+      strategy: { type: 'equal' },
+    })
+
+    await repo.updateExpense(id, {
+      groupId,
+      payerMemberId: ids.Bob,
+      participantMemberIds: [ids.Bob],
+      amount: '12.00',
+      currency: 'USD',
+      description: 'Brunch',
+      strategy: { type: 'equal' },
+    })
+
+    expect(await db.transactions.get(id)).toMatchObject({
+      payerMemberId: ids.Bob,
+      amount: '12.00',
+      currency: 'USD',
+      description: 'Brunch',
+    })
+    await expect(repo.getShares(id)).resolves.toEqual([
+      expect.objectContaining({ memberId: ids.Bob, amount: '12.00' }),
+    ])
+  })
+
   it('reports whether a member has any transactions', async () => {
     const ids = await seedGroup()
     expect(await repo.memberHasTransactions(ids.Alice)).toBe(false)
