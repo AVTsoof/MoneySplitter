@@ -1,3 +1,5 @@
+import bidiFactory from 'bidi-js'
+
 export type ReportRow = {
   description: string
   counterparty: string
@@ -8,13 +10,21 @@ export type PdfReport = {
   content: string[]
 }
 
+const bidi = bidiFactory()
+const containsHebrew = (text: string) => /[\u0590-\u05ff]/.test(text)
+
+export function formatPdfText(text: string): string {
+  if (!containsHebrew(text)) return text
+  return bidi.getReorderedString(text, bidi.getEmbeddingLevels(text, 'rtl'))
+}
+
 export function buildPdfReport(groupName: string, rows: ReportRow[]): PdfReport {
   return {
     content: [
       'MoneySplitter',
-      groupName,
+      formatPdfText(groupName),
       'Bills',
-      ...rows.flatMap((row) => [row.description, row.counterparty, row.amount]),
+      ...rows.flatMap((row) => [row.description, row.counterparty, row.amount].map(formatPdfText)),
     ],
   }
 }
