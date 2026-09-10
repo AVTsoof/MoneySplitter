@@ -28,6 +28,8 @@ type EditDraft = {
   currency: string
   payerMemberId: Uuid
   participantMemberIds: Uuid[]
+  senderMemberId: Uuid
+  receiverMemberId: Uuid
   occurredAt: string
 }
 
@@ -128,6 +130,8 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
         currency: transaction.currency,
         payerMemberId: '',
         participantMemberIds: [],
+        senderMemberId: transaction.senderMemberId!,
+        receiverMemberId: transaction.receiverMemberId!,
         occurredAt: transaction.occurredAt,
       }
       setOriginalDraft(draft)
@@ -142,6 +146,8 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
       currency: transaction.currency,
       payerMemberId: transaction.payerMemberId!,
       participantMemberIds: shares.map((share) => share.memberId),
+      senderMemberId: '',
+      receiverMemberId: '',
       occurredAt: transaction.occurredAt,
     }
     setOriginalDraft(draft)
@@ -168,6 +174,8 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
         currency: editDraft.currency,
         description: editDraft.description.trim(),
         occurredAt: editDraft.occurredAt,
+        senderMemberId: editDraft.senderMemberId,
+        receiverMemberId: editDraft.receiverMemberId,
       })
     }
     setEditingTransactionId(null)
@@ -392,7 +400,14 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               <div>
                 {showGroup && <p className="transaction-group">{groupLabel(transaction)}</p>}
                 {editingTransactionId === transaction.id ? (
-                  <div className="entry-editor">
+                  <form
+                    className="bill-form"
+                    aria-label="Edit bill"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      void saveTransaction(transaction)
+                    }}
+                  >
                     <label>
                       Description
                       <input
@@ -504,7 +519,64 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
                         </fieldset>
                       </>
                     )}
-                  </div>
+                    {transaction.type === 'transfer' && (
+                      <>
+                        <label>
+                          From
+                          <select
+                            data-changed={
+                              editDraft?.senderMemberId !== originalDraft?.senderMemberId
+                            }
+                            value={editDraft?.senderMemberId ?? ''}
+                            onChange={(event) =>
+                              setEditDraft(
+                                (draft) =>
+                                  draft && { ...draft, senderMemberId: event.target.value },
+                              )
+                            }
+                          >
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.displayName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          To
+                          <select
+                            data-changed={
+                              editDraft?.receiverMemberId !== originalDraft?.receiverMemberId
+                            }
+                            value={editDraft?.receiverMemberId ?? ''}
+                            onChange={(event) =>
+                              setEditDraft(
+                                (draft) =>
+                                  draft && { ...draft, receiverMemberId: event.target.value },
+                              )
+                            }
+                          >
+                            {members.map((member) => (
+                              <option key={member.id} value={member.id}>
+                                {member.displayName}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
+                    )}
+                    <button type="submit">Save changes</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingTransactionId(null)
+                        setEditDraft(null)
+                        setOriginalDraft(null)
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </form>
                 ) : (
                   <p className="transaction-description">
                     {displayDescription(transaction.description)}
@@ -517,15 +589,7 @@ export function TransactionsTab({ groupId }: TransactionsTabProps) {
               </div>
               <div className="transaction-actions">
                 <strong>{money(transaction.amount, transaction.currency)}</strong>
-                {editingTransactionId === transaction.id ? (
-                  <button
-                    type="button"
-                    aria-label="Save changes"
-                    onClick={() => saveTransaction(transaction)}
-                  >
-                    Save
-                  </button>
-                ) : (
+                {editingTransactionId !== transaction.id && (
                   <button
                     type="button"
                     aria-label="Edit bill"

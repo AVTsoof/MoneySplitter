@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { resetDatabase } from '../../data/db'
 import {
   addExpense,
+  addTransfer,
   createGroup,
   getMembers,
   seedExampleGroup,
@@ -197,6 +198,54 @@ describe('TransactionsTab', () => {
 
     expect(confirm).toHaveBeenCalledWith('Save these entry changes?')
     expect(within(row).getByLabelText('Description')).toHaveValue('Airport train')
+  })
+
+  it('uses the bill form for editing and discards changes on Cancel', async () => {
+    const groupId = await seedExampleGroup()
+    render(<TransactionsTab groupId={groupId} />)
+
+    const row = (
+      await screen.findByText('Leonardo Express train - Fiumicino to Roma Termini')
+    ).closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit bill' }))
+    const form = await within(row).findByRole('form')
+    expect(form).toHaveClass('bill-form')
+    fireEvent.change(within(form).getByLabelText('Description'), {
+      target: { value: 'Airport train' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel' }))
+
+    expect(
+      await screen.findByText('Leonardo Express train - Fiumicino to Roma Termini'),
+    ).toBeInTheDocument()
+  })
+
+  it('uses the transfer form for editing and discards changes on Cancel', async () => {
+    const groupId = await createGroup({
+      name: 'Test',
+      defaultCurrency: 'EUR',
+      members: ['Alice', 'Bob'],
+    })
+    const members = await getMembers(groupId)
+    await addTransfer({
+      groupId,
+      senderMemberId: members[1].id,
+      receiverMemberId: members[0].id,
+      amount: '10.00',
+      currency: 'EUR',
+      description: 'Payback',
+    })
+    render(<TransactionsTab groupId={groupId} />)
+
+    const row = (await screen.findByText('Payback')).closest('li')!
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit bill' }))
+    const form = await within(row).findByRole('form')
+    expect(form).toHaveClass('bill-form')
+    expect(within(form).getByLabelText('From')).toHaveValue(members[1].id)
+    expect(within(form).getByLabelText('To')).toHaveValue(members[0].id)
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel' }))
+
+    expect(await screen.findByText('Payback')).toBeInTheDocument()
   })
 
   it("shows each member's running bottom line", async () => {
