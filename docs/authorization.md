@@ -111,8 +111,13 @@ must never reach the frontend or the repository.
 
 ## Testing
 
-Policies are not correct until proven. Each table gets `supabase/tests/<table>_rls.test.sql`,
-run with `supabase test db`.
+Policies are not correct until proven. Each table gets `supabase/tests/<table>_rls_test.sql`,
+run with `supabase test db`. pgTAP is already installed in the local stack, so the tests
+create the extension defensively rather than a migration doing it.
+
+Fixtures are inserted as `postgres`, which owns the tables and so bypasses RLS. Switch
+identity with `set local "request.jwt.claims"` first, then `set local role authenticated`;
+`reset role` goes back.
 
 Match the assertion to how the request is denied:
 
