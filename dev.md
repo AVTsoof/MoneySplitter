@@ -582,11 +582,13 @@ its first visit. Review and restyle it before Stage B begins.
 
 #### Stage B - Supabase sync, auth, multi-device
 
-* [TODO] Postgres schema mirroring `web/src/data/schema.ts`
-* [TODO] pgTAP RLS suites (`supabase test db`)
-* [TODO] RLS policies and grants
+* [DONE] Postgres schema mirroring `web/src/data/schema.ts`
+* [DONE] pgTAP RLS suites (`supabase test db`)
+* [DONE] RLS policies and grants
+* [DONE] Supabase client module (`web/src/data/supabase.ts`), absent env = local-only
+* [DONE] Server-authoritative `updated_at` + overlap-window pull cursor
 * [TODO] Supabase Auth (magic link)
-* [TODO] Group invite + member claim flow
+* [IN PROGRESS] Group invite + member claim flow - DB side done (`public.claim_invite`), UI pending
 * [TODO] Outbox push with backoff and idempotent upsert
 * [TODO] Delta pull on `updated_at`, last-write-wins, Realtime subscription
 * [TODO] Shared exchange-rate cache table
@@ -621,6 +623,14 @@ rewriting every stored transaction, as the CSV implementation required.
 
 * Every row carries a client-generated UUID, `updated_at`, and (where applicable)
   `deleted_at`. Deletes are soft or sync cannot propagate them.
+* `updated_at` is set by a Postgres trigger, never by the client. A device with a
+  skewed clock would otherwise stamp a row below a cursor another device has already
+  passed, and that row would never be pulled. This makes conflict resolution
+  last-writer-to-sync-wins rather than last-editor-wins; accepted, because a ledger
+  is append-dominant and the alternative silently loses rows.
+* The pull cursor is the pair `(updated_at, id)`, and every pull re-reads
+  `PULL_OVERLAP_MS` behind its own cursor. A timestamp is assigned before its
+  transaction commits, so a row can appear after the cursor has moved past it.
 * Balances still sum to exactly zero per currency after every transaction.
 * Decimal arithmetic mirrors Python's context (28 digits, HALF_EVEN) with an explicit
   HALF_UP when rounding money to 2dp.
