@@ -39,6 +39,30 @@ describe('groups', () => {
     expect(await repo.listGroups()).toHaveLength(1)
   })
 
+  it('lists groups oldest first, whatever order their ids sort in', async () => {
+    // The app opens groups[0], so an id-ordered list would change which group
+    // the user lands on as soon as another group is added.
+    const older = 'ffffffff-1111-4000-8000-000000000001'
+    const newer = '11111111-1111-4000-8000-000000000002'
+    await repo.createGroup({ id: older, name: 'Older', defaultCurrency: 'EUR', members: ['A'] })
+    await repo.createGroup({ id: newer, name: 'Newer', defaultCurrency: 'EUR', members: ['B'] })
+    await db.groups.update(older, { createdAt: '2026-01-01T00:00:00.000Z' })
+    await db.groups.update(newer, { createdAt: '2026-02-01T00:00:00.000Z' })
+
+    expect((await repo.listGroups()).map((group) => group.name)).toEqual(['Older', 'Newer'])
+  })
+
+  it('breaks a createdAt tie by id so the order is total', async () => {
+    const first = '11111111-1111-4000-8000-000000000003'
+    const second = 'ffffffff-1111-4000-8000-000000000004'
+    await repo.createGroup({ id: second, name: 'Second', defaultCurrency: 'EUR', members: ['A'] })
+    await repo.createGroup({ id: first, name: 'First', defaultCurrency: 'EUR', members: ['B'] })
+    await db.groups.update(first, { createdAt: '2026-01-01T00:00:00.000Z' })
+    await db.groups.update(second, { createdAt: '2026-01-01T00:00:00.000Z' })
+
+    expect((await repo.listGroups()).map((group) => group.name)).toEqual(['First', 'Second'])
+  })
+
   it('creates a group with its members', async () => {
     const ids = await seedGroup()
     const group = await repo.getGroup(groupId)

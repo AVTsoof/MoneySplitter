@@ -158,7 +158,12 @@ export async function createGroup({
 
 export const getGroup = (groupId: Uuid) => db.groups.get(groupId)
 
-export const listGroups = () => db.groups.filter((g) => g.deletedAt === null).toArray()
+/** Oldest first. Dexie would otherwise return uuid order, so adding a group
+ * could silently change which one the app opens. */
+export async function listGroups(): Promise<Group[]> {
+  const groups = await db.groups.filter((group) => group.deletedAt === null).toArray()
+  return groups.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+}
 
 export async function updateGroup(groupId: Uuid, changes: Partial<Group>): Promise<void> {
   await db.groups.update(groupId, { ...changes, updatedAt: now() })
