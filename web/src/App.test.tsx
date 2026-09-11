@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { resetDatabase } from './data/db'
+import { createGroup } from './data/repository'
 import App from './App'
 
 beforeEach(async () => {
@@ -41,5 +42,17 @@ describe('App', () => {
     await user.click(await screen.findByRole('button', { name: 'Delete group' }))
 
     expect(await screen.findByText('No groups yet.')).toBeInTheDocument()
+  })
+
+  it('switches to a selected group from the Groups button', async () => {
+    await createGroup({ name: 'Weekend Dinner', defaultCurrency: 'USD', members: ['Alice', 'Bob'] })
+    const user = userEvent.setup()
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Weekend Dinner' })
+    await user.click(screen.getByRole('button', { name: 'Choose group' }))
+    await user.click(await screen.findByRole('button', { name: /Example Italy Trip/ }))
+
+    expect(await screen.findByRole('heading', { name: 'Example Italy Trip' })).toBeInTheDocument()
   })
 })

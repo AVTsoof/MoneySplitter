@@ -82,6 +82,62 @@ button {
   cursor: pointer;
 }
 
+.group-picker-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(0 0 0 / 35%);
+}
+
+.group-picker {
+  width: min(100%, 400px);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 20%);
+}
+
+.group-picker h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 20px;
+}
+
+.group-picker-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.group-picker-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-picker-option[aria-pressed='true'] {
+  border-color: var(--primary);
+  background: var(--accent-bg);
+}
+
+.group-picker-option small {
+  color: var(--muted-foreground);
+}
+
 .workspace {
   padding-top: 28px;
 }
@@ -119,7 +175,8 @@ button {
 }
 
 .tab:focus-visible,
-.group-switcher:focus-visible {
+.group-switcher:focus-visible,
+.group-picker-option:focus-visible {
   outline: 3px solid var(--ring);
   outline-offset: 2px;
 }

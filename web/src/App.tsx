@@ -22,6 +22,8 @@ const tabIcons: Record<Tab, string> = {
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('Transactions')
+  const [activeGroupId, setActiveGroupId] = useState<string>()
+  const [isGroupPickerOpen, setIsGroupPickerOpen] = useState(false)
   const groups = useLiveQuery(listGroups, [])
 
   useEffect(() => {
@@ -32,7 +34,7 @@ function App() {
     return <main className="app-loading">Loading your ledger...</main>
   }
 
-  const group = groups[0]
+  const group = groups.find(({ id }) => id === activeGroupId) ?? groups[0]
   if (!group) {
     return <main className="app-loading">No groups yet.</main>
   }
@@ -51,11 +53,54 @@ function App() {
             <h1>{group.name}</h1>
             <p>{group.activeCurrencies.join(' / ')} ledger</p>
           </div>
-          <button className="group-switcher" type="button" aria-label="Choose group">
+          <button
+            className="group-switcher"
+            type="button"
+            aria-label="Choose group"
+            aria-expanded={isGroupPickerOpen}
+            aria-controls="group-picker"
+            onClick={() => setIsGroupPickerOpen(true)}
+          >
             Groups
           </button>
         </div>
       </header>
+
+      {isGroupPickerOpen && (
+        <div
+          className="group-picker-backdrop"
+          role="presentation"
+          onMouseDown={() => setIsGroupPickerOpen(false)}
+        >
+          <section
+            id="group-picker"
+            className="group-picker"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="group-picker-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="group-picker-title">Groups</h2>
+            <div className="group-picker-list">
+              {groups.map((candidate) => (
+                <button
+                  key={candidate.id}
+                  className="group-picker-option"
+                  type="button"
+                  aria-pressed={candidate.id === group.id}
+                  onClick={() => {
+                    setActiveGroupId(candidate.id)
+                    setIsGroupPickerOpen(false)
+                  }}
+                >
+                  <span>{candidate.name}</span>
+                  <small>{candidate.activeCurrencies.join(' / ')}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       <section className="workspace" aria-label={`${group.name} workspace`}>
         <div className="tab-list" role="tablist" aria-label="Group workspace">
